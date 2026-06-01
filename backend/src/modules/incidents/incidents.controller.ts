@@ -6,7 +6,7 @@ import { IncidentsService } from "./incidents.service";
 export class IncidentsController {
     constructor(private readonly incidentsService: IncidentsService) { }
 
-    @Post("criar")
+    @Post()
     async createIncident(@Body() data: CreateIncidentDto) {
         return this.incidentsService.createIncident(data);
     }
