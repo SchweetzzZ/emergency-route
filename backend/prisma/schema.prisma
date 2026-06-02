@@ -57,16 +57,16 @@ model User {
 
 model Incident {
   id        String      @id @default(uuid())
-  plate     String @unique
   type      IncidentType
   location  String
   description String
   status    IncidentStatus @default(PENDING)
   latitude Float
   longitude Float
-  avaliable Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  assignments Assignment[]
+
 }
 
 model Vehicule {
@@ -79,4 +79,23 @@ model Vehicule {
   longitude Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  assignments Assignment[]
+
+}
+
+model Assignment {
+  id String @id @default(uuid())
+  incidentId String
+  vehiculeId String
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+  vehicule Vehicule @relation(fields: [vehiculeId], references: [id]) 
+
+  assignedAt DateTime @default(now())
+
+  arrivedAt DateTime?
+
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
 }
