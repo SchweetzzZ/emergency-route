@@ -2,12 +2,14 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service"
 import { DispatchDto, DispatchStatusDto } from "./schemas/zod-validation"
 import { VehiculesService } from "../vehicules/vehicules.service"
+import { RabbitMQService } from "../rabbitMQ/rabbitMQ.service"
 
 @Injectable()
 export class DispatchService {
     constructor(
         private prisma: PrismaService,
-        private vehiculeService: VehiculesService) { }
+        private vehiculeService: VehiculesService,
+        private rabbitMQService: RabbitMQService) { }
 
     async dispatchIncident(data: DispatchDto) {
         const verifyIncident = await this.prisma.incident.findUnique({
@@ -31,7 +33,7 @@ export class DispatchService {
         }
 
         await this.prisma.$transaction(async (tx) => {
-            await tx.assignment.create({
+            const assignment = await tx.assignment.create({
                 data: {
                     incidentId: data.incidentId,
                     vehiculeId: data.vehiculeId
@@ -53,9 +55,12 @@ export class DispatchService {
                     status: "DISPATCHED"
                 }
             })
-            return {
-                message: "Incidente despachado com sucesso"
-            }
+            await this.rabbitMQService.publishDispatch({
+                assignmentId: assignment.id,
+                incidentId: assignment.incidentId,
+                vehiculeId: assignment.vehiculeId
+            })
+            return assignment
         })
     }
 

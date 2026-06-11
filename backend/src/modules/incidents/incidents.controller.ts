@@ -26,4 +26,10 @@ export class IncidentsController {
     async getAllIncident() {
         return this.incidentsService.getAllIncident();
     }
+
+    @Get("/priority")
+    async getPriorityIncidents() {
+        return this.incidentsService.getPriorityIncidents();
+    }
+
 }

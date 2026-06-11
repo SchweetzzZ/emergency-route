@@ -4,9 +4,25 @@ import { Redis } from "ioredis";
 
 @Injectable()
 export class RedisService {
-    constructor(private readonly prisma: PrismaService,
-        private redis: Redis
-    ) { }
+    private redis: Redis;
 
-    async
+    constructor() {
+        this.redis = new Redis({
+            host: "localhost",
+            port: 6379,
+        });
+    }
+
+    getClient() {
+        return this.redis;
+    }
+
+    async getPendingAcidents() {
+        const resultPending = await this.redis.zrevrange(
+            "pendding_incidents",
+            0,
+            9,
+        );
+        return resultPending
+    }
 }

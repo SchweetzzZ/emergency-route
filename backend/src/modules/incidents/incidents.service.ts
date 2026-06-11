@@ -46,4 +46,10 @@ export class IncidentsService {
         const result = await this.prisma.incident.findMany()
         return result
     }
+
+    async getPriorityIncidents() {
+        const resultPeding = await this.redisService.getPendingAcidents();
+        return resultPeding
+    }
+
 }
