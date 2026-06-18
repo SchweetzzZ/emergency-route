@@ -18,7 +18,7 @@ export class RoleGuard implements CanActivate {
 
         if (user.role === Role.ADMIN) return true
 
-        if (!requiredRoles) return false
+        if (!requiredRoles || requiredRoles.length === 0) return true
 
         const userRole = user.role
         const adminRole = user.permissions?.admin

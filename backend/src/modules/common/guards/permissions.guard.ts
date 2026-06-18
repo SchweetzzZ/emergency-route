@@ -20,7 +20,7 @@ export class PermissionGuard implements CanActivate {
 
         if (user.role === Role.ADMIN) return true
 
-        if (!requiredPermissions) return false
+        if (!requiredPermissions || requiredPermissions.length === 0) return true
 
         return requiredPermissions.every(permission => user.permissions.includes(permission))
     }

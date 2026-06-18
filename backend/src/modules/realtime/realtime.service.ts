@@ -92,14 +92,23 @@ export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect
         return { event: "left!", room }
     }
 
-    emitVehiculeLocationUpdate(vehiculeId: string, latitude: number, longitude: number) {
-        this.server.to(`vehicule:${vehiculeId}`).emit(`vehicule.location.updated`,
-            {
-                vehiculeId,
-                latitude,
-                longitude
-            }
-        )
+    emitVehiculeLocationUpdate(
+        vehiculeId: string,
+        latitude: number,
+        longitude: number,
+        speed: number | null = null,
+        heading: number | null = null,
+        accuracy: number | null = null,
+    ) {
+        this.server.to(`vehicule:${vehiculeId}`).emit('vehicule.location.updated', {
+            vehiculeId,
+            latitude,
+            longitude,
+            speed,
+            heading,
+            accuracy,
+            timestamp: new Date().toISOString(),
+        })
     }
 
     notifyDispatchAssigned(vehiculeId: string, payload: unknown) {

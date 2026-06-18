@@ -14,31 +14,26 @@ export class VehiculesController {
     constructor(private readonly vehiculeService: VehiculesService) { }
 
     @Post()
-    @Permissions(PERMISSIONS.vehicule.create)
     async createVehicule(@ZodBody(createVehiculeSchema) data: CreateVehiculeDto) {
         return this.vehiculeService.createVehicule(data)
     }
 
     @Put(":id")
-    @Permissions(PERMISSIONS.vehicule.update)
     async updateVehicule(@ZodBody(updateVehiculeSchema) data: UpdateVehiculeDto, @Param("id") id: string) {
         return this.vehiculeService.updateVehicule(id, data)
     }
 
     @Delete(":id")
-    @Permissions(PERMISSIONS.vehicule.delete)
     async deleteVehicule(@Param("id") id: string) {
         return this.vehiculeService.deleteVehicule(id)
     }
 
     @Get()
-    @Permissions(PERMISSIONS.vehicule.read)
     async listVehicules() {
         return this.vehiculeService.listVehicules()
     }
 
     @Get(":id")
-    @Permissions(PERMISSIONS.vehicule.read)
     async getVehiculeById(@Param("id") id: string) {
         const result = await this.vehiculeService.getVehiculeById(id)
         if (!result) {
@@ -48,13 +43,11 @@ export class VehiculesController {
     }
 
     @Get("nearest/:incidentId")
-    @Permissions(PERMISSIONS.vehicule.read)
     async findNearestVehicule(@Param("incidentId") incidentId: string) {
         return this.vehiculeService.findNearestVehicule(incidentId)
     }
 
     @Get("online")
-    @Permissions(PERMISSIONS.vehicule.read)
     async getOnlineVehicules() {
         return this.vehiculeService.getOnlineVehicules()
     }

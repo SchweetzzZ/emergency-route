@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,6 +18,11 @@ import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
+    // Serve arquivos estáticos da pasta /public — ex: http://localhost:3000/tracking-client.html
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'public'),
+      exclude: ['/api/(.*)', '/tracking/(.*)', '/auth/(.*)', '/health'],
+    }),
     ScheduleModule.forRoot(),
     AuthModule,
     IncidentsModule,

@@ -14,16 +14,21 @@ export class TrackingService {
         return result
     }
 
+    // Histórico completo de posições (tabela Telemetry)
     async getHistory(vehiculeId: string) {
-        const result = await this.prisma.vehicule.findMany({
-            where: {
-                id: vehiculeId
-            },
-            orderBy: {
-                createdAt: 'asc'
+        return this.prisma.telemetry.findMany({
+            where: { vehiculeId },
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                latitude: true,
+                longitude: true,
+                speed: true,
+                heading: true,
+                accuracy: true,
+                createdAt: true,
             }
         })
-        return result
     }
 
     async getCurrentLocation(vehiculeId: string) {
@@ -57,14 +62,12 @@ export class TrackingService {
             }
         })
     }
+
     async getStats(vehiculeId: string) {
         const telemetry = await this.prisma.telemetry.findMany({
-            where: {
-                vehiculeId,
-            },
-            orderBy: {
-                createdAt: "asc",
-            },
+            where: { vehiculeId },
+            orderBy: { createdAt: "asc" },
+            select: { speed: true, createdAt: true },
         });
 
         if (telemetry.length === 0) {
@@ -72,24 +75,30 @@ export class TrackingService {
                 totalLocations: 0,
                 firstSignal: null,
                 lastSignal: null,
-                averageSpeed: 0,
+                averageSpeedKmh: 0,
+                maxSpeedKmh: 0,
             };
         }
 
+        // A Geolocation API retorna speed em m/s — convertemos para km/h
+        const MS_TO_KMH = 3.6;
         const speeds = telemetry
             .filter(t => t.speed !== null)
-            .map(t => t.speed as number);
+            .map(t => (t.speed as number) * MS_TO_KMH);
 
-        const averageSpeed =
+        const averageSpeedKmh =
             speeds.length > 0
                 ? speeds.reduce((a, b) => a + b, 0) / speeds.length
                 : 0;
+
+        const maxSpeedKmh = speeds.length > 0 ? Math.max(...speeds) : 0;
 
         return {
             totalLocations: telemetry.length,
             firstSignal: telemetry[0].createdAt,
             lastSignal: telemetry[telemetry.length - 1].createdAt,
-            averageSpeed,
+            averageSpeedKmh: Math.round(averageSpeedKmh * 10) / 10,
+            maxSpeedKmh: Math.round(maxSpeedKmh * 10) / 10,
         };
     }
 }

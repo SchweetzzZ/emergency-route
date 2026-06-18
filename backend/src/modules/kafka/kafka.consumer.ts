@@ -87,18 +87,21 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
             },
         });
 
-        // Publica auditoria apenas quando o veículo volta a ficar online
         if (!before?.trackingEnable) {
             await this.kafkaService.publishAuditEvent("TRACKING_STARTED", {
                 vehiculeId: vehicule.id,
             });
         }
 
+
         await this.prisma.telemetry.create({
             data: {
                 vehiculeId: vehicule.id,
                 latitude: data.latitude,
                 longitude: data.longitude,
+                speed: data.speed ?? null,  // m/s vindo do browser
+                accuracy: data.accuracy ?? null,  // precisão do GPS em metros
+                heading: data.heading ?? null,  // direção em graus
             },
         });
 
@@ -106,6 +109,9 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
             vehicule.id,
             vehicule.latitude,
             vehicule.longitude,
+            data.speed ?? null,
+            data.heading ?? null,
+            data.accuracy ?? null,
         );
 
         return vehicule;

@@ -32,4 +32,10 @@ export class IncidentsController {
         return this.incidentsService.getPriorityIncidents();
     }
 
+    @Get("test")
+    test() {
+        console.log("TESTE DO TESTE")
+        return { ok: true }
+    }
+
 }

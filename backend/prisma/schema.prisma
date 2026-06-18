@@ -119,14 +119,16 @@ model Assignment {
 }
 
 model Telemetry {
-  id String @id @default(uuid())
+  id         String   @id @default(uuid())
   vehiculeId String
-  latitude Float
-  longitude Float
+  latitude   Float
+  longitude  Float
 
-  speed Float?
+  speed      Float?   // velocidade em m/s (da Browser Geolocation API)
+  accuracy   Float?   // precisão do GPS em metros
+  heading    Float?   // direção em graus (0-360), null se parado
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   vehicule Vehicule @relation(fields: [vehiculeId], references: [id], onDelete: Cascade)
 
