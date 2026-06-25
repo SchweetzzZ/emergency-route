@@ -6,36 +6,33 @@ import { IncidentsService } from "./incidents.service";
 export class IncidentsController {
     constructor(private readonly incidentsService: IncidentsService) { }
 
-    @Post()
-    async createIncident(@Body() data: CreateIncidentDto) {
-        return this.incidentsService.createIncident(data);
-    }
-    @Put(":id")
-    async updatedIncident(@Body() data: UpdateIncidentDto, @Param("id") id: string) {
-        return this.incidentsService.updatedIncident(data, id);
-    }
-    @Delete(":id")
-    async deleteIncident(@Param("id") id: string) {
-        return this.incidentsService.deleteIncident(id);
-    }
-    @Get(":id")
-    async getIncidentById(@Param("id") id: string) {
-        return this.incidentsService.getIncidentById(id);
-    }
     @Get()
     async getAllIncident() {
         return this.incidentsService.getAllIncident();
     }
 
-    @Get("/priority")
+    @Get("priority")
     async getPriorityIncidents() {
         return this.incidentsService.getPriorityIncidents();
     }
 
-    @Get("test")
-    test() {
-        console.log("TESTE DO TESTE")
-        return { ok: true }
+    @Get(":id")
+    async getIncidentById(@Param("id") id: string) {
+        return this.incidentsService.getIncidentById(id);
     }
 
+    @Post()
+    async createIncident(@Body() data: CreateIncidentDto) {
+        return this.incidentsService.createIncident(data);
+    }
+
+    @Put(":id")
+    async updatedIncident(@Body() data: UpdateIncidentDto, @Param("id") id: string) {
+        return this.incidentsService.updatedIncident(data, id);
+    }
+
+    @Delete(":id")
+    async deleteIncident(@Param("id") id: string) {
+        return this.incidentsService.deleteIncident(id);
+    }
 }

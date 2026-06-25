@@ -14,6 +14,28 @@ export class DispatchService {
         private kafkaService: KafkaService
     ) { }
 
+    async listAssignments() {
+        return this.prisma.assignment.findMany({
+            include: {
+                incident: true,
+                vehicule: true,
+            },
+            orderBy: { assignedAt: "desc" },
+        })
+    }
+
+    async getAssignmentById(id: string) {
+        const assignment = await this.prisma.assignment.findUnique({
+            where: { id },
+            include: {
+                incident: true,
+                vehicule: true,
+            },
+        })
+        if (!assignment) throw new NotFoundException("Despacho não encontrado")
+        return assignment
+    }
+
     async dispatchIncident(data: DispatchDto) {
         const verifyIncident = await this.prisma.incident.findUnique({
             where: { id: data.incidentId }
@@ -35,28 +57,21 @@ export class DispatchService {
             throw new BadRequestException("Veículo não está disponível")
         }
 
-        await this.prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (tx) => {
             const assignment = await tx.assignment.create({
                 data: {
                     incidentId: data.incidentId,
                     vehiculeId: data.vehiculeId
-                }
+                },
+                include: { incident: true, vehicule: true }
             })
             await tx.incident.update({
-                where: {
-                    id: data.incidentId
-                },
-                data: {
-                    status: "IN_PROGRESS"
-                }
+                where: { id: data.incidentId },
+                data: { status: "IN_PROGRESS" }
             })
             await tx.vehicule.update({
-                where: {
-                    id: data.vehiculeId
-                },
-                data: {
-                    status: "DISPATCHED"
-                }
+                where: { id: data.vehiculeId },
+                data: { status: "DISPATCHED" }
             })
             await this.rabbitMQService.publishDispatch({
                 assignmentId: assignment.id,
@@ -83,23 +98,15 @@ export class DispatchService {
         if (verifyAssignmet.status !== "ASSIGNED") {
             throw new BadRequestException("Despacho não está pendente")
         }
-        await this.prisma.$transaction(async (tx) => {
-            await tx.assignment.update({
-                where: {
-                    id: data.assignmentId
-                },
-                data: {
-                    status: "ACCEPTED",
-                    acceptedAt: new Date()
-                }
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.assignment.update({
+                where: { id: data.assignmentId },
+                data: { status: "ACCEPTED", acceptedAt: new Date() },
+                include: { incident: true, vehicule: true }
             })
             await tx.vehicule.update({
-                where: {
-                    id: data.vehiculeId
-                },
-                data: {
-                    status: "EN_ROUTE"
-                }
+                where: { id: data.vehiculeId },
+                data: { status: "EN_ROUTE" }
             })
             await this.kafkaService.publishAuditEvent("DISPATCH_ACCEPTED", {
                 assignmentId: data.assignmentId,
@@ -107,9 +114,7 @@ export class DispatchService {
                 incidentId: verifyAssignmet.incidentId,
                 timestamp: new Date()
             })
-            return {
-                message: "Despacho aceito com sucesso"
-            }
+            return updated
         })
     }
 
@@ -123,23 +128,15 @@ export class DispatchService {
         if (verifyAssignment.status !== "ACCEPTED") {
             throw new BadRequestException("Despacho não está aceito")
         }
-        await this.prisma.$transaction(async (tx) => {
-            await tx.assignment.update({
-                where: {
-                    id: data.assignmentId
-                },
-                data: {
-                    status: "EN_ROUTE",
-                    arrivedAt: new Date()
-                }
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.assignment.update({
+                where: { id: data.assignmentId },
+                data: { status: "EN_ROUTE" },
+                include: { incident: true, vehicule: true }
             })
             await tx.vehicule.update({
-                where: {
-                    id: data.vehiculeId
-                },
-                data: {
-                    status: "EN_ROUTE"
-                }
+                where: { id: data.vehiculeId },
+                data: { status: "EN_ROUTE" }
             })
             await this.kafkaService.publishAuditEvent("EN_ROUTE", {
                 assignmentId: data.assignmentId,
@@ -147,9 +144,7 @@ export class DispatchService {
                 incidentId: verifyAssignment.incidentId,
                 timestamp: new Date()
             })
-            return {
-                message: "Rota iniciada com sucesso"
-            }
+            return updated
         })
     }
 
@@ -163,23 +158,15 @@ export class DispatchService {
         if (verifyAssignment.status !== "EN_ROUTE") {
             throw new BadRequestException("Despacho não está em rota")
         }
-        await this.prisma.$transaction(async (tx) => {
-            await tx.assignment.update({
-                where: {
-                    id: data.assignmentId
-                },
-                data: {
-                    status: "ARRIVED",
-                    arrivedAt: new Date()
-                }
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.assignment.update({
+                where: { id: data.assignmentId },
+                data: { status: "ARRIVED", arrivedAt: new Date() },
+                include: { incident: true, vehicule: true }
             })
             await tx.vehicule.update({
-                where: {
-                    id: data.vehiculeId
-                },
-                data: {
-                    status: "AT_INCIDENT"
-                }
+                where: { id: data.vehiculeId },
+                data: { status: "AT_INCIDENT" }
             })
             await this.kafkaService.publishAuditEvent("ARRIVED_AT_SCENE", {
                 assignmentId: data.assignmentId,
@@ -187,9 +174,7 @@ export class DispatchService {
                 incidentId: verifyAssignment.incidentId,
                 timestamp: new Date()
             })
-            return {
-                message: "Chegada ao local realizada com sucesso"
-            }
+            return updated
         })
     }
 
@@ -203,45 +188,26 @@ export class DispatchService {
         if (verifyAssignment.status !== "ARRIVED") {
             throw new BadRequestException("Despacho não está no local")
         }
-        await this.prisma.$transaction(async (tx) => {
-            await tx.assignment.update({
-                where: {
-                    id: data.assignmentId
-                },
-                data: {
-                    status: "COMPLETED",
-                    completedAt: new Date()
-                }
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.assignment.update({
+                where: { id: data.assignmentId },
+                data: { status: "COMPLETED", completedAt: new Date() },
+                include: { incident: true, vehicule: true }
             })
             await tx.vehicule.update({
-                where: {
-                    id: data.vehiculeId
-                },
-                data: {
-                    status: "AVAILABLE"
-                }
+                where: { id: data.vehiculeId },
+                data: { status: "AVAILABLE" }
             })
             const activeAssignments = await tx.assignment.count({
                 where: {
                     incidentId: verifyAssignment.incidentId,
-                    status: {
-                        in: [
-                            "ASSIGNED",
-                            "ACCEPTED",
-                            "EN_ROUTE",
-                            "ARRIVED",
-                        ],
-                    },
+                    status: { in: ["ASSIGNED", "ACCEPTED", "EN_ROUTE", "ARRIVED"] },
                 },
             })
             if (activeAssignments === 0) {
                 await tx.incident.update({
-                    where: {
-                        id: data.incidentId
-                    },
-                    data: {
-                        status: "RESOLVED"
-                    }
+                    where: { id: verifyAssignment.incidentId },
+                    data: { status: "RESOLVED" }
                 })
             }
             await this.kafkaService.publishAuditEvent("DISPATCH_COMPLETED", {
@@ -250,9 +216,7 @@ export class DispatchService {
                 incidentId: verifyAssignment.incidentId,
                 timestamp: new Date()
             })
-            return {
-                message: "Despacho concluído com sucesso"
-            }
+            return updated
         })
     }
     async autoDispatch(incidentId: string) {
