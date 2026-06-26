@@ -5,6 +5,8 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io"
 import { JwtService } from "@nestjs/jwt";
+import { KafkaService } from "../kafka/kafka.service";
+import { success } from "zod";
 
 @WebSocketGateway({
     cors: {
@@ -17,7 +19,9 @@ import { JwtService } from "@nestjs/jwt";
 export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server
-    constructor(private readonly jwtService: JwtService) { }
+    constructor(private readonly jwtService: JwtService,
+        private readonly kafkaService: KafkaService
+    ) { }
 
     handleConnection(client: Socket) {
         try {
@@ -90,6 +94,22 @@ export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect
         console.log(`Cliente ${client.id} saiu da sala ${room}`)
 
         return { event: "left!", room }
+    }
+    //Metodo experimental para o socket ser o principal provedor
+    @SubscribeMessage("tracking_localization")
+    async handleTrackingLocalization(
+        @MessageBody() payload: {
+            vehiculeId: string;
+            latitude: number;
+            longitude: number;
+            speed?: number;
+            accuracy?: number;
+            heading?: number;
+        },
+    ) {
+        await this.kafkaService.publishLocation(payload)
+        return { success: true }
+
     }
 
     emitVehiculeLocationUpdate(
