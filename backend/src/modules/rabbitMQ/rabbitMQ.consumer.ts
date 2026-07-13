@@ -21,13 +21,13 @@ export class RabbitMQConsumer implements OnModuleInit {
 
                 chanel.consume(
                     "dispatch_queue",
-                    (message) => {
+                    async (message) => {
                         if (!message) return
-                        const content = JSON.parse(message.content.toString())
+                        const content = JSON.parse(message.content.toString());
 
                         console.log("Mensagem recebida", content)
 
-                        this.realtimeService.notifyDispatchAssigned(
+                        await this.realtimeService.notifyDispatchAssigned(
                             content.vehiculeId,
                             content
                         )

@@ -1,24 +1,36 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "./../prisma/prisma.service";
-import { KafkaService } from "../kafka/kafka.service";
-import { TrackingInputDTO } from "./schemas/zod-validation";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class TrackingService {
-    constructor(private readonly prisma: PrismaService,
-        private kafkaService: KafkaService
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly jwtService: JwtService,
     ) { }
 
-    async handleLocation(data: TrackingInputDTO) {
-        const result = await this.kafkaService.publishLocation(data)
-        return result
+    async createDeviceToken(vehiculeId: string) {
+        const vehicule = await this.prisma.vehicule.findUnique({
+            where: { id: vehiculeId },
+            select: { id: true, name: true },
+        });
+
+        if (!vehicule) {
+            throw new NotFoundException("Veículo não encontrado");
+        }
+
+        const token = await this.jwtService.signAsync(
+            { type: "tracking-device", vehiculeId: vehicule.id },
+            { expiresIn: "12h" },
+        );
+
+        return { vehiculeId: vehicule.id, vehiculeName: vehicule.name, token, expiresIn: "12h" };
     }
 
-    // Histórico completo de posições (tabela Telemetry)
     async getHistory(vehiculeId: string) {
         return this.prisma.telemetry.findMany({
             where: { vehiculeId },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { capturedAt: "asc" },
             select: {
                 id: true,
                 latitude: true,
@@ -26,48 +38,39 @@ export class TrackingService {
                 speed: true,
                 heading: true,
                 accuracy: true,
+                capturedAt: true,
                 createdAt: true,
-            }
-        })
+            },
+        });
     }
 
     async getCurrentLocation(vehiculeId: string) {
-        const result = await this.prisma.vehicule.findUnique({
-            where: {
-                id: vehiculeId
-            },
+        return this.prisma.vehicule.findUnique({
+            where: { id: vehiculeId },
             select: {
                 id: true,
                 latitude: true,
                 longitude: true,
                 lastSeen: true,
-                trackingEnable: true
-            }
-        })
-        return result
+                trackingEnable: true,
+            },
+        });
     }
 
-    async getTelemetryHistory(vehiculeId: string, hours: number = 2) {
-        const fromDate = new Date(Date.now() - hours * 60 * 60 * 1000)
+    async getTelemetryHistory(vehiculeId: string, hours = 2) {
+        const fromDate = new Date(Date.now() - hours * 60 * 60 * 1000);
 
         return this.prisma.telemetry.findMany({
-            where: {
-                vehiculeId,
-                createdAt: {
-                    gte: fromDate
-                }
-            },
-            orderBy: {
-                createdAt: "asc"
-            }
-        })
+            where: { vehiculeId, capturedAt: { gte: fromDate } },
+            orderBy: { capturedAt: "asc" },
+        });
     }
 
     async getStats(vehiculeId: string) {
         const telemetry = await this.prisma.telemetry.findMany({
             where: { vehiculeId },
-            orderBy: { createdAt: "asc" },
-            select: { speed: true, createdAt: true },
+            orderBy: { capturedAt: "asc" },
+            select: { speed: true, capturedAt: true },
         });
 
         if (telemetry.length === 0) {
@@ -80,25 +83,18 @@ export class TrackingService {
             };
         }
 
-        // A Geolocation API retorna speed em m/s — convertemos para km/h
-        const MS_TO_KMH = 3.6;
         const speeds = telemetry
-            .filter(t => t.speed !== null)
-            .map(t => (t.speed as number) * MS_TO_KMH);
-
-        const averageSpeedKmh =
-            speeds.length > 0
-                ? speeds.reduce((a, b) => a + b, 0) / speeds.length
-                : 0;
-
-        const maxSpeedKmh = speeds.length > 0 ? Math.max(...speeds) : 0;
+            .filter((item) => item.speed !== null)
+            .map((item) => (item.speed as number) * 3.6);
 
         return {
             totalLocations: telemetry.length,
-            firstSignal: telemetry[0].createdAt,
-            lastSignal: telemetry[telemetry.length - 1].createdAt,
-            averageSpeedKmh: Math.round(averageSpeedKmh * 10) / 10,
-            maxSpeedKmh: Math.round(maxSpeedKmh * 10) / 10,
+            firstSignal: telemetry[0].capturedAt,
+            lastSignal: telemetry[telemetry.length - 1].capturedAt,
+            averageSpeedKmh: speeds.length > 0
+                ? Math.round((speeds.reduce((a, b) => a + b, 0) / speeds.length) * 10) / 10
+                : 0,
+            maxSpeedKmh: speeds.length > 0 ? Math.round(Math.max(...speeds) * 10) / 10 : 0,
         };
     }
 }

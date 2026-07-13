@@ -1181,30 +1181,24 @@
             }, 1000);
         }
 
-        // Post simulated location updates to /tracking endpoint (simulating driver's tracker client)
+        // Development-only route simulator. Real devices emit location.update from tracking-client.html.
         async function sendSimulatedTelemetry(vehicleId, latitude, longitude, speed) {
-            try {
-                const res = await fetch(`${API_URL}/tracking`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        vehiculeId: vehicleId,
-                        latitude: latitude,
-                        longitude: longitude,
-                        speed: speed,
-                        accuracy: 5,
-                        heading: Math.floor(Math.random() * 360)
-                    })
-                });
-                
-                if (res.ok) {
-                    console.log(`Simulated telemetry sent: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
-                }
-            } catch (err) {
-                console.error("Failed to send simulated telemetry", err);
+            if (!socket?.connected) {
+                console.error("Socket indisponível para simular telemetria");
+                return;
             }
+
+            socket.emit('location.simulate', {
+                eventId: crypto.randomUUID(),
+                sequence: Date.now(),
+                vehiculeId: vehicleId,
+                latitude: latitude,
+                longitude: longitude,
+                speed: speed,
+                accuracy: 5,
+                heading: Math.floor(Math.random() * 360),
+                capturedAt: new Date().toISOString()
+            });
         }
 
         // Synchronize all Leaflet Map Markers

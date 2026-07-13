@@ -1,14 +1,91 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Incident {
+  id          String         @id @default(uuid())
+  type        IncidentType
+  location    String
+  description String
+  status      IncidentStatus @default(PENDING)
+  latitude    Float
+  longitude   Float
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  priority    Int            @default(50)
+  assignments Assignment[]
+}
+
+model Vehicule {
+  id             String         @id @default(uuid())
+  name           String
+  plate          String         @unique
+  type           VehiculeType
+  status         VehiculeStatus @default(AVAILABLE)
+  latitude       Float
+  longitude      Float
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  lastSeen       DateTime?
+  trackingEnable Boolean        @default(false)
+  assignments    Assignment[]
+  telemetries    Telemetry[]
+}
+
+model Assignment {
+  id          String           @id @default(uuid())
+  incidentId  String
+  vehiculeId  String
+  assignedAt  DateTime         @default(now())
+  arrivedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  status      AssignmentStatus @default(ASSIGNED)
+  acceptedAt  DateTime?
+  incident    Incident         @relation(fields: [incidentId], references: [id])
+  vehicule    Vehicule         @relation(fields: [vehiculeId], references: [id])
+}
+
+model Telemetry {
+  id         String   @id @default(uuid())
+  vehiculeId String
+  // Nullable only to preserve telemetry rows created before socket tracking.
+  // New socket events always provide this UUID.
+  clientEventId String? @unique @db.Uuid
+  latitude   Float
+  longitude  Float
+  speed      Float?
+  accuracy   Float?
+  heading    Float?
+  capturedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  vehicule   Vehicule @relation(fields: [vehiculeId], references: [id], onDelete: Cascade)
+
+  @@index([vehiculeId])
+  @@index([vehiculeId, createdAt])
+  @@index([vehiculeId, capturedAt])
+}
+
+model Auditlog {
+  id        String   @id @default(uuid())
+  eventType String
+  payload   Json
+  createdAt DateTime @default(now())
 }
 
 enum IncidentStatus {
@@ -51,94 +128,4 @@ enum AssignmentStatus {
 enum Role {
   ADMIN
   USER
-}
-
-model User {
-  id String @id @default(uuid())
-  name String
-  email String @unique
-  password String
-  role Role @default(USER)
-  phone String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Incident {
-  id        String      @id @default(uuid())
-  type      IncidentType
-  location  String
-  description String
-  status    IncidentStatus @default(PENDING)
-  latitude Float
-  longitude Float
-  priority   Int @default(50)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  assignments Assignment[]
-
-}
-
-model Vehicule {
-  id String @id @default(uuid())
-  name String
-  plate String @unique
-  type VehiculeType
-  status VehiculeStatus @default(AVAILABLE)
-  latitude Float
-  longitude Float
-  trackingEnable Boolean @default(false)
-  lastSeen DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  assignments Assignment[]
-  telemetries Telemetry[]
-
-
-}
-
-model Assignment {
-  id String @id @default(uuid())
-  incidentId String
-  vehiculeId String
-
-  incident Incident @relation(fields: [incidentId], references: [id])
-  vehicule Vehicule @relation(fields: [vehiculeId], references: [id])
-
-  status AssignmentStatus @default(ASSIGNED)
-
-  assignedAt DateTime @default(now())
-
-  acceptedAt DateTime?
-
-  arrivedAt DateTime?
-
-  completedAt DateTime?
-
-  createdAt DateTime @default(now())
-}
-
-model Telemetry {
-  id         String   @id @default(uuid())
-  vehiculeId String
-  latitude   Float
-  longitude  Float
-
-  speed      Float?   // velocidade em m/s (da Browser Geolocation API)
-  accuracy   Float?   // precisão do GPS em metros
-  heading    Float?   // direção em graus (0-360), null se parado
-
-  createdAt  DateTime @default(now())
-
-  vehicule Vehicule @relation(fields: [vehiculeId], references: [id], onDelete: Cascade)
-
-  @@index([vehiculeId])
-  @@index([vehiculeId, createdAt])
-}
-
-model Auditlog {
-  id String @id @default(uuid())
-  eventType String
-  payload Json
-  createdAt DateTime @default(now())
 }

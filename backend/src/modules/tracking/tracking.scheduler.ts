@@ -10,7 +10,7 @@ export class TrackingScheduler {
         private readonly kafkaService: KafkaService,
     ) { }
 
-    @Cron("*/60 * * * * *")
+    @Cron("0 * * * * *")
     async disableInactiveVehicles() {
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
