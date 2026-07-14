@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EmergencyTrack – Viaturas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#0a0e1a;color:#e2e8f0}
+    .sidebar{background:linear-gradient(180deg,#0f172a 0%,#1a1f35 100%);border-right:1px solid rgba(255,255,255,0.06)}
+    .nav-item{transition:all 0.2s;border-radius:10px}
+    .nav-item:hover{background:rgba(99,102,241,0.15);color:#a5b4fc}
+    .nav-item.active{background:rgba(99,102,241,0.25);color:#818cf8;border-left:3px solid #6366f1}
+    .card{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:16px}
+    .input-field{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);transition:all 0.3s}
+    .input-field:focus{background:rgba(255,255,255,0.1);border-color:#6366f1;outline:none;box-shadow:0 0 0 3px rgba(99,102,241,0.2)}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);transition:all 0.3s}
+    .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+    .modal-bg{background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+    .modal-card{background:#1a1f35;border:1px solid rgba(255,255,255,0.1)}
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+    .top-header{background:rgba(10,14,26,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+    select option{background:#1a1f35}
+  </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-64 min-h-screen flex flex-col fixed left-0 top-0 h-full z-30">
+  <div class="flex items-center gap-3 px-6 py-5 border-b border-white/5">
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    </div>
+    <div><div class="text-white font-bold text-sm">EmergencyTrack</div><div class="text-gray-500 text-xs">v2.0 · Operacional</div></div>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
+    <a href="dispatches.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Despachos</a>
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
+    <a href="vehicles.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Viaturas</a>
+    <a href="incidents.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Incidentes</a>
+    <a href="dispatches.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Despachos</a>
+    <a href="tracking.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Rastreamento</a>
+  </nav>
+  <div class="px-4 py-4 border-t border-white/5">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">OP</div>
+      <div class="flex-1"><div class="text-sm font-medium text-white">Operador</div><div class="text-xs text-gray-500">Logado</div></div>
+      <button onclick="logout()" class="text-gray-500 hover:text-red-400 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+  <header class="top-header sticky top-0 z-20 flex items-center justify-between px-8 py-4">
+    <div>
+      <h1 class="text-xl font-bold text-white">Viaturas</h1>
+      <p class="text-gray-500 text-xs mt-0.5">Gerencie a frota de viaturas do sistema</p>
+    </div>
+    <button onclick="openModal()" class="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nova Viatura
+    </button>
+  </header>
+
+  <div class="flex-1 p-8">
+    <!-- Filter bar -->
+    <div class="flex gap-3 mb-6">
+      <select id="filter-status" onchange="renderVehicles()" class="input-field text-white text-sm px-4 py-2.5 rounded-xl">
+        <option value="">Todos os status</option>
+        <option value="AVAILABLE">Disponível</option>
+        <option value="DISPATCHED">Despachada</option>
+        <option value="BUSY">Ocupada</option>
+        <option value="OFFLINE">Offline</option>
+        <option value="EN_ROUTE">Em Rota</option>
+        <option value="AT_INCIDENT">No Local</option>
+      </select>
+      <select id="filter-type" onchange="renderVehicles()" class="input-field text-white text-sm px-4 py-2.5 rounded-xl">
+        <option value="">Todos os tipos</option>
+        <option value="AMBULANCE">Ambulância</option>
+        <option value="FIRE_TRUCK">Caminhão de Bombeiros</option>
+        <option value="POLICE_CAR">Viatura Policial</option>
+        <option value="TOW_TRUCK">Guincho</option>
+        <option value="TOW_TRUCK">Guincho</option>
+      </select>
+    </div>
+
+    <div id="vehicles-list" class="grid grid-cols-1 gap-4">
+      <div class="text-gray-500 text-center py-16">Carregando viaturas...</div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="modal-card rounded-2xl w-full max-w-lg p-7">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-bold text-white" id="modal-title">Nova Viatura</h2>
+      <button onclick="closeModal()" class="text-gray-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <form id="vehicle-form" onsubmit="handleSave(event)" class="space-y-4">
+      <input type="hidden" id="vehicle-id"/>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1">Nome *</label>
+          <input id="v-name" type="text" placeholder="Ambulância 01" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm"/>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1">Placa *</label>
+          <input id="v-plate" type="text" placeholder="ABC-1234" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm"/>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1">Tipo *</label>
+          <select id="v-type" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+            <option value="">Selecione...</option>
+            <option value="AMBULANCE">Ambulância</option>
+            <option value="FIRE_TRUCK">Caminhão de Bombeiros</option>
+            <option value="POLICE_CAR">Viatura Policial</option>
+            <option value="TOW_TRUCK">Guincho</option>
+            <option value="TOW_TRUCK">Guincho</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1">Status *</label>
+          <select id="v-status" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+            <option value="">Selecione...</option>
+            <option value="AVAILABLE">Disponível</option>
+            <option value="OFFLINE">Offline</option>
+            <option value="BUSY">Ocupada</option>
+          </select>
+        </div>
+      </div>
+      <div id="form-error" class="hidden text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm transition-colors">Cancelar</button>
+        <button type="submit" class="btn-primary flex-1 py-2.5 rounded-xl text-white text-sm font-semibold" id="save-btn">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="modal-card rounded-2xl w-full max-w-sm p-6 text-center">
+    <div class="w-14 h-14 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-7 h-7 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </div>
+    <h3 class="text-white font-bold mb-2">Excluir Viatura?</h3>
+    <p class="text-gray-400 text-sm mb-6">Esta ação não pode ser desfeita.</p>
+    <div class="flex gap-3">
+      <button onclick="closeConfirm()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm transition-colors">Cancelar</button>
+      <button onclick="confirmDelete()" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition-colors">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API=window.location.origin;
+const token=localStorage.getItem('token');
+if(!token) window.location.href='index.html';
+const orgFetch=window.fetch;
+window.fetch=async(...args)=>{
+  const r=await orgFetch(...args);
+  if(r.status===401||r.status===403){localStorage.removeItem('token');window.location.href='index.html';}
+  return r;
+};
+function authHeaders(){return{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}}
+function logout(){localStorage.removeItem('token');window.location.href='index.html'}
+
+const statusMap={
+  AVAILABLE:{label:'Disponível',color:'bg-emerald-500/20 text-emerald-400',dot:'bg-emerald-400'},
+  DISPATCHED:{label:'Despachada',color:'bg-blue-500/20 text-blue-400',dot:'bg-blue-400'},
+  BUSY:{label:'Ocupada',color:'bg-amber-500/20 text-amber-400',dot:'bg-amber-400'},
+  OFFLINE:{label:'Offline',color:'bg-gray-500/20 text-gray-400',dot:'bg-gray-400'},
+  EN_ROUTE:{label:'Em Rota',color:'bg-purple-500/20 text-purple-400',dot:'bg-purple-400'},
+  AT_INCIDENT:{label:'No Local',color:'bg-rose-500/20 text-rose-400',dot:'bg-rose-400'}
+};
+const typeIcons={AMBULANCE:'🚑',FIRE_TRUCK:'🚒',POLICE_CAR:'🚓',CART:'🚐',TOW_TRUCK:'🚛'};
+const typeLabels={AMBULANCE:'Ambulância',FIRE_TRUCK:'Caminhão de Bombeiros',POLICE_CAR:'Viatura Policial',CART:'Van',TOW_TRUCK:'Guincho'};
+
+let allVehicles=[];
+let deleteId=null;
+
+async function loadVehicles(){
+  try{
+    const res=await fetch(`${API}/vehicules`,{headers:authHeaders()});
+    allVehicles=res.ok?await res.json():[];
+    renderVehicles();
+  }catch(e){document.getElementById('vehicles-list').innerHTML='<div class="text-rose-400 text-center py-16">Erro ao carregar viaturas. Verifique se o backend está rodando.</div>';}
+}
+
+function renderVehicles(){
+  const statusF=document.getElementById('filter-status').value;
+  const typeF=document.getElementById('filter-type').value;
+  let list=allVehicles.filter(v=>(!statusF||v.status===statusF)&&(!typeF||v.type===typeF));
+  const el=document.getElementById('vehicles-list');
+  if(!list.length){el.innerHTML='<div class="text-gray-500 text-center py-16">Nenhuma viatura encontrada</div>';return;}
+  el.innerHTML=list.map(v=>{
+    const s=statusMap[v.status]||{label:v.status,color:'bg-gray-500/20 text-gray-400',dot:'bg-gray-400'};
+    const tracking=v.trackingEnable?'<span class="badge bg-emerald-500/20 text-emerald-400 text-xs">📡 Rastreando</span>':'';
+    const coords=v.latitude&&v.longitude?`<span class="text-xs text-gray-500">📍 ${v.latitude?.toFixed(4)}, ${v.longitude?.toFixed(4)}</span>`:'<span class="text-xs text-gray-600">📍 Sem localização</span>';
+    const speed=v.speed!=null?`<span class="text-xs text-gray-500">⚡ ${v.speed?.toFixed(1)} km/h</span>`:'';
+    return `<div class="card p-5 flex items-center gap-5">
+      <div class="text-4xl">${typeIcons[v.type]||'🚨'}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-white font-semibold">${v.name}</span>
+          <span class="badge ${s.color}"><span class="status-dot ${s.dot}"></span>${s.label}</span>
+          ${tracking}
+        </div>
+        <div class="flex items-center gap-4 flex-wrap">
+          <span class="text-xs text-gray-400 font-mono">${v.plate}</span>
+          <span class="text-xs text-gray-500">${typeLabels[v.type]||v.type}</span>
+          ${coords}
+          ${speed}
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openEdit(${JSON.stringify(v).replace(/"/g,'&quot;')})" class="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-400 transition-colors" title="Editar">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button onclick="askDelete(${v.id})" class="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 transition-colors" title="Excluir">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(){
+  document.getElementById('modal-title').textContent='Nova Viatura';
+  document.getElementById('vehicle-id').value='';
+  document.getElementById('vehicle-form').reset();
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function openEdit(v){
+  document.getElementById('modal-title').textContent='Editar Viatura';
+  document.getElementById('vehicle-id').value=v.id;
+  document.getElementById('v-name').value=v.name;
+  document.getElementById('v-plate').value=v.plate;
+  document.getElementById('v-type').value=v.type;
+  document.getElementById('v-status').value=v.status;
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(){document.getElementById('modal').classList.add('hidden')}
+
+async function handleSave(e){
+  e.preventDefault();
+  const id=document.getElementById('vehicle-id').value;
+  const body={name:document.getElementById('v-name').value,plate:document.getElementById('v-plate').value,type:document.getElementById('v-type').value,status:document.getElementById('v-status').value};
+  if(!id){
+    body.latitude=0.0;
+    body.longitude=0.0;
+  }
+  const errEl=document.getElementById('form-error');
+  try{
+    const url=id?`${API}/vehicules/${id}`:`${API}/vehicules`;
+    const method=id?'PUT':'POST';
+    const res=await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(body)});
+    if(!res.ok)throw new Error(await res.text()||'Erro ao salvar');
+    closeModal();
+    loadVehicles();
+  }catch(err){errEl.textContent=err.message;errEl.classList.remove('hidden');}
+}
+
+function askDelete(id){deleteId=id;document.getElementById('confirm-modal').classList.remove('hidden')}
+function closeConfirm(){document.getElementById('confirm-modal').classList.add('hidden');deleteId=null}
+async function confirmDelete(){
+  if(!deleteId)return;
+  await fetch(`${API}/vehicules/${deleteId}`,{method:'DELETE',headers:authHeaders()});
+  closeConfirm();loadVehicles();
+}
+
+loadVehicles();
+</script>
+</body>
+</html>

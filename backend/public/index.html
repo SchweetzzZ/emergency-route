@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EmergencyTrack – Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+    .glow { box-shadow: 0 0 40px rgba(99,102,241,0.3); }
+    .input-field { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); transition: all 0.3s; }
+    .input-field:focus { background: rgba(255,255,255,0.12); border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); outline: none; }
+    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(99,102,241,0.4); }
+    .pulse-ring { animation: pulse-ring 2s infinite; }
+    @keyframes pulse-ring { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.05)} }
+    .particle { position: absolute; border-radius: 50%; background: rgba(99,102,241,0.15); animation: float linear infinite; }
+    @keyframes float { 0%{transform:translateY(100vh) rotate(0deg);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-100px) rotate(720deg);opacity:0} }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center overflow-hidden relative">
+
+  <!-- Animated particles -->
+  <div id="particles" class="absolute inset-0 pointer-events-none"></div>
+
+  <!-- Glowing orbs -->
+  <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600 rounded-full opacity-10 blur-3xl"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-600 rounded-full opacity-10 blur-3xl"></div>
+
+  <div class="relative z-10 w-full max-w-md mx-4">
+    <!-- Logo / Brand -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 glow pulse-ring" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-white">EmergencyTrack</h1>
+      <p class="text-indigo-300 mt-1 text-sm">Sistema de Gestão de Emergências</p>
+    </div>
+
+    <!-- Card -->
+    <div class="glass rounded-2xl p-8">
+      <div id="tab-buttons" class="flex bg-white/5 rounded-xl p-1 mb-6">
+        <button onclick="showTab('login')" id="tab-login" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-white" style="background:rgba(99,102,241,0.7)">Entrar</button>
+        <button onclick="showTab('register')" id="tab-register" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white">Registrar</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Email</label>
+            <input id="login-email" type="email" placeholder="operador@emergencia.gov" required
+              class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Senha</label>
+            <div class="relative">
+              <input id="login-password" type="password" placeholder="••••••••" required
+                class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm pr-12" />
+              <button type="button" onclick="togglePassword('login-password')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="login-error" class="hidden mt-3 text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2"></div>
+        <button type="submit" id="login-btn" class="btn-primary w-full mt-6 py-3 rounded-xl text-white font-semibold text-sm">
+          <span id="login-btn-text">Entrar no Sistema</span>
+          <span id="login-btn-loading" class="hidden">Autenticando...</span>
+        </button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="form-register" class="hidden" onsubmit="handleRegister(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Nome completo</label>
+            <input id="reg-name" type="text" placeholder="João da Silva" required
+              class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Email</label>
+            <input id="reg-email" type="email" placeholder="operador@emergencia.gov" required
+              class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Telefone</label>
+            <input id="reg-phone" type="tel" placeholder="(00) 00000-0000" required minlength="10"
+              class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-sm text-gray-300 mb-1 font-medium">Senha</label>
+            <input id="reg-password" type="password" placeholder="••••••••" required minlength="6"
+              class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-gray-500 text-sm" />
+          </div>
+        </div>
+        <div id="reg-error" class="hidden mt-3 text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2"></div>
+        <div id="reg-success" class="hidden mt-3 text-green-400 text-sm bg-green-500/10 rounded-lg px-3 py-2"></div>
+        <button type="submit" id="reg-btn" class="btn-primary w-full mt-6 py-3 rounded-xl text-white font-semibold text-sm">
+          <span id="reg-btn-text">Criar Conta</span>
+          <span id="reg-btn-loading" class="hidden">Registrando...</span>
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-gray-600 text-xs mt-6">© 2026 EmergencyTrack · Sistema de Gestão de Emergências</p>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    // Particles
+    const container = document.getElementById('particles');
+    for(let i=0;i<15;i++){
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random()*60+20;
+      p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;animation-duration:${Math.random()*20+10}s;animation-delay:${Math.random()*10}s;`;
+      container.appendChild(p);
+    }
+
+    function showTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+      document.getElementById('form-register').classList.toggle('hidden', isLogin);
+      document.getElementById('tab-login').style.background = isLogin ? 'rgba(99,102,241,0.7)' : '';
+      document.getElementById('tab-login').style.color = isLogin ? 'white' : '';
+      document.getElementById('tab-register').style.background = !isLogin ? 'rgba(99,102,241,0.7)' : '';
+      document.getElementById('tab-register').style.color = !isLogin ? 'white' : '';
+      document.getElementById('tab-login').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isLogin ? 'text-white' : 'text-gray-400 hover:text-white'}`;
+      document.getElementById('tab-register').className = `flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${!isLogin ? 'text-white' : 'text-gray-400 hover:text-white'}`;
+    }
+
+    function togglePassword(id) {
+      const inp = document.getElementById(id);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errDiv = document.getElementById('login-error');
+      btn.disabled = true;
+      document.getElementById('login-btn-text').classList.add('hidden');
+      document.getElementById('login-btn-loading').classList.remove('hidden');
+      errDiv.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('login-email').value,
+            password: document.getElementById('login-password').value
+          })
+        });
+        if (!res.ok) throw new Error('Credenciais inválidas');
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        window.location.href = 'dispatches.html';
+      } catch(err) {
+        errDiv.textContent = err.message || 'Erro ao conectar ao servidor';
+        errDiv.classList.remove('hidden');
+        btn.disabled = false;
+        document.getElementById('login-btn-text').classList.remove('hidden');
+        document.getElementById('login-btn-loading').classList.add('hidden');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('reg-btn');
+      const errDiv = document.getElementById('reg-error');
+      const successDiv = document.getElementById('reg-success');
+      btn.disabled = true;
+      document.getElementById('reg-btn-text').classList.add('hidden');
+      document.getElementById('reg-btn-loading').classList.remove('hidden');
+      errDiv.classList.add('hidden');
+      successDiv.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('reg-name').value,
+            email: document.getElementById('reg-email').value,
+            password: document.getElementById('reg-password').value,
+            phone: document.getElementById('reg-phone').value
+          })
+        });
+        if (res.status === 400) throw new Error('Email já cadastrado');
+        if (!res.ok) throw new Error('Erro ao registrar');
+        successDiv.textContent = 'Conta criada com sucesso! Faça login.';
+        successDiv.classList.remove('hidden');
+        setTimeout(() => showTab('login'), 2000);
+      } catch(err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        document.getElementById('reg-btn-text').classList.remove('hidden');
+        document.getElementById('reg-btn-loading').classList.add('hidden');
+      }
+    }
+
+    // Redirect if already logged in
+    if (localStorage.getItem('token')) window.location.href = 'dispatches.html';
+  </script>
+</body>
+</html>

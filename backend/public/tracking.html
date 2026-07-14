@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EmergencyTrack – Rastreamento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#0a0e1a;color:#e2e8f0}
+    .sidebar{background:linear-gradient(180deg,#0f172a 0%,#1a1f35 100%);border-right:1px solid rgba(255,255,255,0.06)}
+    .nav-item{transition:all 0.2s;border-radius:10px}
+    .nav-item:hover{background:rgba(99,102,241,0.15);color:#a5b4fc}
+    .nav-item.active{background:rgba(99,102,241,0.25);color:#818cf8;border-left:3px solid #6366f1}
+    .card{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:16px}
+    .input-field{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);transition:all 0.3s}
+    .input-field:focus{background:rgba(255,255,255,0.1);border-color:#6366f1;outline:none;box-shadow:0 0 0 3px rgba(99,102,241,0.2)}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);transition:all 0.3s}
+    .btn-primary:hover{opacity:0.9}
+    .top-header{background:rgba(10,14,26,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+    .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600}
+    #map{border-radius:16px;border:1px solid rgba(255,255,255,0.08)}
+    .leaflet-tile{filter:brightness(0.8) saturate(0.8)}
+    .ws-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+    .ws-dot.on{background:#10b981;box-shadow:0 0 8px #10b981;animation:pulse 2s infinite}
+    .ws-dot.off{background:#6b7280}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .log-entry{animation:fadeIn .3s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+    select option{background:#1a1f35}
+  </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-64 min-h-screen flex flex-col fixed left-0 top-0 h-full z-30">
+  <div class="flex items-center gap-3 px-6 py-5 border-b border-white/5">
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    </div>
+    <div><div class="text-white font-bold text-sm">EmergencyTrack</div><div class="text-gray-500 text-xs">v2.0 · Operacional</div></div>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
+    <a href="dashboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
+    <a href="vehicles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Viaturas</a>
+    <a href="incidents.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Incidentes</a>
+    <a href="dispatches.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Despachos</a>
+    <a href="tracking.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Rastreamento</a>
+  </nav>
+  <div class="px-4 py-4 border-t border-white/5">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">OP</div>
+      <div class="flex-1"><div class="text-sm font-medium text-white">Operador</div><div class="text-xs text-gray-500">Logado</div></div>
+      <button onclick="logout()" class="text-gray-500 hover:text-red-400 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+  <header class="top-header sticky top-0 z-20 flex items-center justify-between px-8 py-4">
+    <div>
+      <h1 class="text-xl font-bold text-white">Rastreamento em Tempo Real</h1>
+      <p class="text-gray-500 text-xs mt-0.5">GPS via navegador → WebSocket → Kafka</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 text-xs text-gray-400">
+        <span class="ws-dot off" id="ws-dot"></span>
+        <span id="ws-label">WebSocket: desconectado</span>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-gray-400">
+        <span class="ws-dot off" id="gps-dot"></span>
+        <span id="gps-label">GPS: inativo</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex-1 p-6 grid grid-cols-3 gap-6">
+    <!-- LEFT PANEL -->
+    <div class="col-span-1 flex flex-col gap-5">
+
+      <!-- Configuração -->
+      <div class="card p-5">
+        <h3 class="text-white font-semibold text-sm mb-4">Configuração de Transmissão</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-gray-400 font-medium block mb-1">Viatura (este dispositivo)</label>
+            <select id="sel-vehicle" class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+              <option value="">Selecione a viatura...</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 font-medium block mb-1">Intervalo de envio</label>
+            <select id="sel-interval" class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+              <option value="3000">3 segundos</option>
+              <option value="5000" selected>5 segundos</option>
+              <option value="10000">10 segundos</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-4 flex flex-col gap-2">
+          <button onclick="startTracking()" id="btn-start" class="btn-primary w-full py-2.5 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Iniciar Transmissão
+          </button>
+          <button onclick="stopTracking()" id="btn-stop" disabled class="w-full py-2.5 rounded-xl text-gray-400 text-sm font-semibold border border-white/10 hover:text-white transition-colors flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+            Parar
+          </button>
+        </div>
+      </div>
+
+      <!-- Localização atual -->
+      <div class="card p-5">
+        <h3 class="text-white font-semibold text-sm mb-4">Localização Atual (GPS)</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Latitude</span>
+            <span class="text-sm font-mono text-white" id="info-lat">–</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Longitude</span>
+            <span class="text-sm font-mono text-white" id="info-lng">–</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Velocidade</span>
+            <span class="text-sm text-white" id="info-speed">–</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Precisão</span>
+            <span class="text-sm text-white" id="info-accuracy">–</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Direção</span>
+            <span class="text-sm text-white" id="info-heading">–</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-gray-500">Pacotes enviados</span>
+            <span class="text-sm text-emerald-400 font-bold" id="info-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico (viatura selecionada) -->
+      <div class="card p-5 flex-1">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-white font-semibold text-sm">Histórico da Viatura</h3>
+          <button onclick="loadHistory()" class="text-xs text-indigo-400 hover:text-indigo-300">Atualizar</button>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1">Horas atrás</label>
+          <select id="sel-hours" class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm mb-3">
+            <option value="1">1 hora</option>
+            <option value="6">6 horas</option>
+            <option value="24" selected>24 horas</option>
+            <option value="48">48 horas</option>
+          </select>
+        </div>
+        <div id="history-list" class="space-y-1 overflow-y-auto max-h-52 text-xs text-gray-500">
+          Selecione uma viatura e clique em Atualizar
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP + LOG -->
+    <div class="col-span-2 flex flex-col gap-5">
+      <!-- Map -->
+      <div class="card flex-1" style="min-height:400px">
+        <div id="map" class="w-full h-full" style="min-height:420px"></div>
+      </div>
+
+      <!-- Live log -->
+      <div class="card p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-white font-semibold text-sm">Log de Transmissão</h3>
+          <button onclick="clearLog()" class="text-xs text-gray-500 hover:text-gray-300">Limpar</button>
+        </div>
+        <div id="log" class="space-y-1 overflow-y-auto max-h-36 font-mono text-xs"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API=window.location.origin;
+const token=localStorage.getItem('token');
+if(!token) window.location.href='index.html';
+const orgFetch=window.fetch;
+window.fetch=async(...args)=>{
+  const r=await orgFetch(...args);
+  if(r.status===401||r.status===403){localStorage.removeItem('token');window.location.href='index.html';}
+  return r;
+};
+function authH(){return{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}}
+function logout(){localStorage.removeItem('token');window.location.href='index.html'}
+
+// Map
+const map=L.map('map').setView([-15.7801,-47.9292],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+let myMarker=null, watchId=null, stompClient=null, sendInterval=null, packetCount=0;
+let currentPos=null;
+const vehicleMarkers={};
+
+const myIcon=L.divIcon({className:'',html:`<div style="width:20px;height:20px;border-radius:50%;background:#6366f1;border:3px solid white;box-shadow:0 0 14px rgba(99,102,241,0.9)"></div>`,iconSize:[20,20],iconAnchor:[10,10]});
+const remoteIcon=L.divIcon({className:'',html:`<div style="width:16px;height:16px;border-radius:50%;background:#10b981;border:2px solid white;box-shadow:0 0 10px rgba(16,185,129,0.8)"></div>`,iconSize:[16,16],iconAnchor:[8,8]});
+const incidentIcon=L.divIcon({className:'',html:`<div style="width:22px;height:22px;border-radius:4px;background:#ef4444;border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:11px">🚨</div>`,iconSize:[22,22],iconAnchor:[11,11]});
+
+function addLog(msg,color='text-gray-400'){
+  const el=document.getElementById('log');
+  const now=new Date().toLocaleTimeString('pt-BR');
+  const div=document.createElement('div');
+  div.className=`log-entry ${color}`;
+  div.textContent=`[${now}] ${msg}`;
+  el.prepend(div);
+  while(el.children.length>50)el.removeChild(el.lastChild);
+}
+function clearLog(){document.getElementById('log').innerHTML='';}
+
+// WebSocket
+function connectWS(){
+  try{
+    const sock=new SockJS(`${API}/ws-tracking`);
+    stompClient=Stomp.over(sock);
+    stompClient.debug=null;
+    stompClient.connect({},()=>{
+      document.getElementById('ws-dot').className='ws-dot on';
+      document.getElementById('ws-label').textContent='WebSocket: conectado';
+      addLog('WebSocket conectado com sucesso','text-emerald-400');
+      // Subscrever atualizações de localização de TODAS as viaturas
+      stompClient.subscribe('/topic/vehicles',msg=>{
+        try{
+          const d=JSON.parse(msg.body);
+          const lat=d.latitude,lng=d.longitude,vid=d.vehicleId;
+          if(!lat||!lng)return;
+          addLog(`📡 Viatura #${vid} → (${lat.toFixed(5)}, ${lng.toFixed(5)}) ${d.speed?'@ '+(d.speed*3.6).toFixed(0)+'km/h':''}`,'text-blue-400');
+          // Atualizar ou criar marcador no mapa
+          const selVehicle=document.getElementById('sel-vehicle').value;
+          const isMine=selVehicle&&parseInt(selVehicle)===vid;
+          if(vehicleMarkers[vid]){
+            vehicleMarkers[vid].setLatLng([lat,lng]);
+          } else {
+            const icon=isMine?myIcon:remoteIcon;
+            vehicleMarkers[vid]=L.marker([lat,lng],{icon}).addTo(map)
+              .bindPopup(`<b>Viatura #${vid}</b><br>Lat: ${lat.toFixed(5)}<br>Lng: ${lng.toFixed(5)}`);
+          }
+          // Se for a viatura selecionada, centralizar mapa
+          if(isMine)map.panTo([lat,lng]);
+        }catch(e){}
+      });
+    },()=>{
+      document.getElementById('ws-dot').className='ws-dot off';
+      document.getElementById('ws-label').textContent='WebSocket: desconectado';
+      addLog('WebSocket desconectado – tentando reconectar...','text-amber-400');
+      setTimeout(connectWS,5000);
+    });
+  }catch(e){addLog('Erro ao conectar WebSocket','text-rose-400');}
+}
+
+// GPS
+function startTracking(){
+  const vehicleId=document.getElementById('sel-vehicle').value;
+  if(!vehicleId){addLog('⚠️ Selecione uma viatura antes de iniciar','text-amber-400');return;}
+  const interval=parseInt(document.getElementById('sel-interval').value)||5000;
+  const simulateGPS=()=>{
+    addLog('⚠️ Permissão de GPS negada. Ativando simulador de rota...','text-amber-400');
+    document.getElementById('gps-dot').className='ws-dot on';
+    document.getElementById('gps-label').textContent='GPS: simulado';
+    let lat = -23.55052;
+    let lng = -46.633308;
+    sendInterval=setInterval(()=>{
+      lat += (Math.random() - 0.3) * 0.00015;
+      lng += (Math.random() - 0.3) * 0.00015;
+      document.getElementById('info-lat').textContent=lat.toFixed(7);
+      document.getElementById('info-lng').textContent=lng.toFixed(7);
+      document.getElementById('info-speed').textContent='40.0 km/h';
+      document.getElementById('info-accuracy').textContent='±5 m';
+      document.getElementById('info-heading').textContent='45°';
+      if(!myMarker){myMarker=L.marker([lat,lng],{icon:myIcon}).addTo(map).bindPopup(`Viatura #${vehicleId}`);}
+      else{myMarker.setLatLng([lat,lng]);}
+      map.setView([lat,lng],16);
+      if(stompClient?.connected){
+        const payload={vehicleId:parseInt(vehicleId),latitude:lat,longitude:lng,speed:11.1,accuracy:5.0,heading:45.0};
+        try{
+          stompClient.send('/app/tracking_localization',{},JSON.stringify(payload));
+          packetCount++;
+          document.getElementById('info-count').textContent=packetCount;
+          addLog(`📤 Enviado #${packetCount}: (${lat.toFixed(5)}, ${lng.toFixed(5)}) @ 40.0km/h`,'text-emerald-400');
+        }catch(e){addLog('❌ Falha ao enviar via WebSocket','text-rose-400');}
+      }
+    },interval);
+  };
+
+  if(!navigator.geolocation){
+    addLog('❌ Geolocalização não suportada neste navegador','text-rose-400');
+    simulateGPS();
+    return;
+  }
+
+  addLog(`🚀 Iniciando rastreamento para viatura #${vehicleId}`,'text-indigo-400');
+  document.getElementById('btn-start').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+
+  const gpsOpts={enableHighAccuracy:true,timeout:10000,maximumAge:1000};
+
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    currentPos=pos;
+    const {latitude:lat,longitude:lng,speed,accuracy,heading}=pos.coords;
+    document.getElementById('gps-dot').className='ws-dot on';
+    document.getElementById('gps-label').textContent='GPS: ativo';
+    document.getElementById('info-lat').textContent=lat.toFixed(7);
+    document.getElementById('info-lng').textContent=lng.toFixed(7);
+    document.getElementById('info-speed').textContent=speed!=null?`${(speed*3.6).toFixed(1)} km/h`:'–';
+    document.getElementById('info-accuracy').textContent=accuracy!=null?`±${accuracy.toFixed(0)} m`:'–';
+    document.getElementById('info-heading').textContent=heading!=null?`${heading.toFixed(0)}°`:'–';
+
+    // Update map marker
+    if(!myMarker){myMarker=L.marker([lat,lng],{icon:myIcon}).addTo(map).bindPopup(`Viatura #${vehicleId}`);}
+    else{myMarker.setLatLng([lat,lng]);}
+    map.setView([lat,lng],16);
+  },err=>{
+    if(err.code===1){
+      simulateGPS();
+      return;
+    }
+    addLog(`❌ Erro GPS: ${err.message}`,'text-rose-400');
+  },gpsOpts);
+
+  // Send loop
+  sendInterval=setInterval(()=>{
+    if(!currentPos||!stompClient?.connected)return;
+    const {latitude,longitude,speed,accuracy,heading}=currentPos.coords;
+    const payload={vehicleId:parseInt(vehicleId),latitude,longitude,speed:speed??0,accuracy:accuracy??0,heading:heading??0};
+    try{
+      stompClient.send('/app/tracking_localization',{},JSON.stringify(payload));
+      packetCount++;
+      document.getElementById('info-count').textContent=packetCount;
+      addLog(`📤 Enviado #${packetCount}: (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) @ ${(speed??0*3.6).toFixed(1)}km/h`,'text-emerald-400');
+    }catch(e){addLog('❌ Falha ao enviar via WebSocket','text-rose-400');}
+  },interval);
+}
+
+function stopTracking(){
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(sendInterval){clearInterval(sendInterval);sendInterval=null;}
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('gps-dot').className='ws-dot off';
+  document.getElementById('gps-label').textContent='GPS: inativo';
+  addLog('⏹️ Transmissão encerrada pelo operador','text-amber-400');
+}
+
+// History
+async function loadHistory(){
+  const vehicleId=document.getElementById('sel-vehicle').value;
+  if(!vehicleId){addLog('Selecione uma viatura para ver o histórico','text-amber-400');return;}
+  const hours=document.getElementById('sel-hours').value;
+  try{
+    const res=await fetch(`${API}/tracking/${vehicleId}/history/hours?hours=${hours}`,{headers:authH()});
+    const data=res.ok?await res.json():[];
+    const el=document.getElementById('history-list');
+    if(!data.length){el.innerHTML='<div class="text-gray-600">Nenhum registro encontrado</div>';return;}
+    el.innerHTML=data.slice(0,30).map(t=>`
+      <div class="flex justify-between text-gray-400 py-0.5 border-b border-white/5">
+        <span>${t.latitude?.toFixed(5)}, ${t.longitude?.toFixed(5)}</span>
+        <span class="text-gray-600">${t.speed!=null?(t.speed*3.6).toFixed(1)+'km/h':''}</span>
+      </div>`).join('');
+    // Draw polyline on map
+    const coords=data.map(t=>[t.latitude,t.longitude]);
+    L.polyline(coords,{color:'#6366f1',weight:3,opacity:0.7}).addTo(map);
+    if(coords.length)map.fitBounds(coords);
+    addLog(`📊 ${data.length} registros carregados para viatura #${vehicleId}`,'text-blue-400');
+  }catch(e){addLog('Erro ao carregar histórico','text-rose-400');}
+}
+
+// Load vehicles into select
+async function loadVehicles(){
+  try{
+    const res=await fetch(`${API}/vehicles`,{headers:authH()});
+    const vehicles=res.ok?await res.json():[];
+    const sel=document.getElementById('sel-vehicle');
+    const icons={AMBULANCE:'🚑',FIRE_TRUCK:'🚒',POLICE_CAR:'🚓',CART:'🚐',TOW_TRUCK:'🚛'};
+    sel.innerHTML='<option value="">Selecione a viatura...</option>'+vehicles.map(v=>`<option value="${v.id}">${icons[v.type]||'🚨'} ${v.name} – ${v.plate}</option>`).join('');
+    // Plotar viaturas com localização conhecida no mapa
+    vehicles.filter(v=>v.latitude&&v.longitude&&(v.latitude!==0||v.longitude!==0)).forEach(v=>{
+      if(vehicleMarkers[v.id])return;
+      vehicleMarkers[v.id]=L.marker([v.latitude,v.longitude],{icon:remoteIcon}).addTo(map)
+        .bindPopup(`<b>${icons[v.type]||'🚨'} ${v.name}</b><br>${v.plate}<br>Status: ${v.status}`);
+    });
+    addLog(`${vehicles.length} viaturas carregadas`,'text-gray-500');
+  }catch(e){addLog('Erro ao carregar viaturas','text-rose-400');}
+}
+
+// Carregar incidentes ativos no mapa
+async function loadIncidentsOnMap(){
+  try{
+    const res=await fetch(`${API}/incidents`,{headers:authH()});
+    const incidents=res.ok?await res.json():[];
+    const typeEmoji={ACCIDENT:'💥',FIRE:'🔥',MEDICAL:'🏥'};
+    incidents.filter(i=>i.latitude&&i.longitude&&i.status!=='RESOLVED').forEach(i=>{
+      const icon=L.divIcon({className:'',html:`<div style="background:#ef4444;border:2px solid white;border-radius:4px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px rgba(239,68,68,0.7)">${typeEmoji[i.type]||'🚨'}</div>`,iconSize:[24,24],iconAnchor:[12,12]});
+      L.marker([i.latitude,i.longitude],{icon}).addTo(map)
+        .bindPopup(`<b>${typeEmoji[i.type]||'🚨'} ${i.description||'Incidente'}</b><br>📍 ${i.location}<br>Prioridade: ${i.priority}/5`);
+    });
+    addLog(`${incidents.filter(i=>i.status!=='RESOLVED').length} incidentes ativos no mapa`,'text-gray-500');
+  }catch(e){}
+}
+
+// Init
+loadVehicles();
+loadIncidentsOnMap();
+
+const s1=document.createElement('script');
+s1.src='https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js';
+s1.onload=()=>{
+  const s2=document.createElement('script');
+  s2.src='https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js';
+  s2.onload=()=>{connectWS();addLog('Bibliotecas WebSocket carregadas','text-gray-600');};
+  document.head.appendChild(s2);
+};
+document.head.appendChild(s1);
+</script>
+</body>
+</html>
