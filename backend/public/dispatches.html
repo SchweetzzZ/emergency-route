@@ -40,7 +40,7 @@
   </div>
   <nav class="flex-1 px-3 py-4 space-y-1">
     <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
-    <a href="dispatches.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Despachos</a>
+    <a href="dispatch-dashboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
     <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
     <a href="vehicles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Viaturas</a>
     <a href="incidents.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Incidentes</a>
@@ -194,9 +194,9 @@ let selectedDispatch=null;
 async function loadAll(){
   try{
     const [dRes,iRes,vRes]=await Promise.all([
-      fetch(`${API}/dispatches`,{headers:authHeaders()}),
+      fetch(`${API}/dispatch`,{headers:authHeaders()}),
       fetch(`${API}/incidents`,{headers:authHeaders()}),
-      fetch(`${API}/vehicles`,{headers:authHeaders()})
+      fetch(`${API}/vehicules`,{headers:authHeaders()})
     ]);
     allDispatches=dRes.ok?await dRes.json():[];
     allIncidents=iRes.ok?await iRes.json():[];
@@ -240,19 +240,19 @@ function renderDispatches(){
     }).join('');
 
     const nextActions=getNextActions(d);
-    const actionsHTML=nextActions.map(a=>`<button onclick="updateStatus(${d.id},${d.vehicle?.id},'${a.endpoint}')" class="text-xs px-3 py-1.5 rounded-lg ${a.color} transition-colors">${a.label}</button>`).join('');
+    const actionsHTML=nextActions.map(a=>`<button onclick="updateStatus('${d.id}','${d.vehicule?.id}','${a.endpoint}','${d.incidentId}')" class="text-xs px-3 py-1.5 rounded-lg ${a.color} transition-colors">${a.label}</button>`).join('');
 
     return `<div class="card p-5">
       <div class="flex items-start justify-between mb-4">
         <div class="flex items-start gap-4">
-          <span class="text-3xl">${typeIcons[d.vehicle?.type]||'🚨'}</span>
+          <span class="text-3xl">${typeIcons[d.vehicule?.type]||'🚨'}</span>
           <div>
             <div class="flex items-center gap-3 mb-1">
-              <span class="text-white font-semibold">${d.vehicle?.name||'Viatura #'+d.vehicle?.id||'–'}</span>
+              <span class="text-white font-semibold">${d.vehicule?.name||'Viatura'}</span>
               <span class="badge ${s.color}">${s.label}</span>
               ${d.status==='CANCELLED'?'<span class="badge bg-rose-500/20 text-rose-400">Cancelado</span>':''}
             </div>
-            <div class="text-xs text-gray-400">Incidente: ${d.incident?.description||'#'+d.incident?.id||'–'}</div>
+            <div class="text-xs text-gray-400">Incidente: ${d.incident?.description||d.incident?.location||'–'}</div>
             <div class="text-xs text-gray-500">Atribuído: ${d.assignedAt?new Date(d.assignedAt).toLocaleString('pt-BR'):'–'}</div>
           </div>
         </div>
@@ -274,10 +274,12 @@ function getNextActions(d){
   return map[d.status]||[];
 }
 
-async function updateStatus(id,vehicleId,endpoint){
+async function updateStatus(id,vehiculeId,endpoint,incidentId){
+  const statusMap={accept:'ACCEPTED','start-route':'EN_ROUTE',arrived:'ARRIVED',complete:'COMPLETED'};
   try{
-    const res=await fetch(`${API}/dispatches/${endpoint}`,{method:'PUT',headers:authHeaders(),body:JSON.stringify({assignmentId:id,vehicleId:vehicleId})});
-    if(!res.ok)throw new Error('Erro ao atualizar status');
+    const body={assignmentId:id,vehiculeId:vehiculeId,incidentId:incidentId,status:statusMap[endpoint]||'ASSIGNED'};
+    const res=await fetch(`${API}/dispatch/${endpoint}`,{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
+    if(!res.ok)throw new Error(await res.text()||'Erro ao atualizar status');
     loadAll();
   }catch(e){alert(e.message);}
 }
@@ -295,8 +297,8 @@ async function handleDispatch(e){
   e.preventDefault();
   const errEl=document.getElementById('d-error');
   try{
-    const body={incidentId:parseInt(document.getElementById('d-incident').value),vehicleId:parseInt(document.getElementById('d-vehicle').value)};
-    const res=await fetch(`${API}/dispatches`,{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
+    const body={incidentId:document.getElementById('d-incident').value,vehiculeId:document.getElementById('d-vehicle').value};
+    const res=await fetch(`${API}/dispatch`,{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
     if(!res.ok)throw new Error(await res.text()||'Erro ao despachar');
     closeModal();loadAll();
   }catch(err){errEl.textContent=err.message;errEl.classList.remove('hidden');}
@@ -310,7 +312,7 @@ async function handleAutoDispatch(){
   const errEl=document.getElementById('auto-error');
   if(!incidentId){errEl.textContent='Selecione um incidente';errEl.classList.remove('hidden');return;}
   try{
-    const res=await fetch(`${API}/dispatches/auto/${incidentId}`,{method:'POST',headers:authHeaders()});
+    const res=await fetch(`${API}/dispatch/auto`,{method:'POST',headers:authHeaders(),body:JSON.stringify({incidentId})});
     if(!res.ok)throw new Error(await res.text()||'Nenhuma viatura disponível');
     closeAutoModal();loadAll();
   }catch(err){errEl.textContent=err.message;errEl.classList.remove('hidden');}
@@ -321,34 +323,28 @@ function closeStatusModal(){document.getElementById('status-modal').classList.ad
 loadAll();
 setInterval(loadAll,15000);
 
-// ========= GPS TRACKING VIA WEBSOCKET =========
-let _stompClient=null,_watchId=null,_sendInterval=null,_trackingVehicleId=null,_trackPackets=0;
+// ========= GPS TRACKING VIA WEBSOCKET (Socket.IO) =========
+let _socket=null,_watchId=null,_sendInterval=null,_trackingVehicleId=null,_trackPackets=0;
 
 function initWS(onReady){
-  if(_stompClient&&_stompClient.connected){onReady();return;}
-  const loadStomp=()=>{
-    const s2=document.createElement('script');
-    s2.src='https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js';
-    s2.onload=()=>{
-      const sock=new SockJS(`${API}/ws-tracking`);
-      _stompClient=Stomp.over(sock);
-      _stompClient.debug=null;
-      _stompClient.connect({},()=>onReady(),()=>console.warn('WS desconectado'));
-    };
-    document.head.appendChild(s2);
+  if(_socket&&_socket.connected){onReady();return;}
+  const token=localStorage.getItem('token');
+  const s=document.createElement('script');
+  s.src='https://cdn.socket.io/4.8.0/socket.io.min.js';
+  s.onload=()=>{
+    _socket=io(`${API}/realtime`,{auth:{token},transports:['websocket']});
+    _socket.on('connect',()=>onReady());
+    _socket.on('disconnect',()=>console.warn('WS desconectado'));
+    _socket.on('requires_auth',(msg)=>console.warn('Auth WS:',msg));
   };
-  if(window.SockJS){loadStomp();return;}
-  const s1=document.createElement('script');
-  s1.src='https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js';
-  s1.onload=loadStomp;
-  document.head.appendChild(s1);
+  document.head.appendChild(s);
 }
 
-async function startSimulatedTracking(vehicleId){
+async function startSimulatedTracking(vehiculeId){
   let lat = -9.4144;
   let lng = -40.5162;
   try {
-    const res = await fetch(`${API}/vehicles/${vehicleId}`, {headers: authH()});
+    const res = await fetch(`${API}/vehicules/${vehiculeId}`, {headers: authHeaders()});
     if (res.ok) {
       const v = await res.json();
       if (v.latitude && v.longitude) {
@@ -363,7 +359,7 @@ async function startSimulatedTracking(vehicleId){
   const targetLng = (lng > 0) ? 40.48038 : -40.48038;
   
   _sendInterval = setInterval(()=>{
-    if(!_stompClient?.connected)return;
+    if(!_socket?.connected)return;
     const step = 0.0003;
     if (Math.abs(lat - targetLat) > step) {
       lat += (targetLat > lat ? 1 : -1) * step;
@@ -373,47 +369,56 @@ async function startSimulatedTracking(vehicleId){
     }
     document.getElementById('track-info').textContent = `🔮 GPS Simulado · 📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     const payload = {
-      vehicleId: parseInt(_trackingVehicleId),
+      vehiculeId: _trackingVehicleId,
+      eventId: crypto.randomUUID(),
+      sequence: _trackPackets,
       latitude: lat,
       longitude: lng,
       speed: 11.1,
       accuracy: 5.0,
-      heading: 45.0
+      heading: 45.0,
+      capturedAt: new Date().toISOString()
     };
-    _stompClient.send('/app/tracking_localization', {}, JSON.stringify(payload));
+    _socket.emit('location.update', payload);
     _trackPackets++;
-    document.getElementById('track-label').textContent = `🚑 Viatura #${_trackingVehicleId} — ${_trackPackets} pacotes enviados (Simulado)`;
+    document.getElementById('track-label').textContent = `🚑 Viatura — ${_trackPackets} pacotes enviados (Simulado)`;
   }, 3000);
 }
 
-function startVehicleTracking(vehicleId){
-  if(!navigator.geolocation){alert('Geolocação não suportada neste navegador.');return;}
+function startVehicleTracking(vehiculeId){
   stopVehicleTracking();
-  _trackingVehicleId=vehicleId;
+  _trackingVehicleId=vehiculeId;
   _trackPackets=0;
   document.getElementById('tracking-banner').classList.remove('hidden');
-  document.getElementById('track-label').textContent=`🚑 Viatura #${vehicleId} transmitindo...`;
+  document.getElementById('track-label').textContent=`🚑 Viatura transmitindo...`;
   initWS(()=>{
-    _watchId=navigator.geolocation.watchPosition(pos=>{
-      const {latitude:lat,longitude:lng,speed,accuracy,heading}=pos.coords;
-      document.getElementById('track-info').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} · ±${(accuracy||0).toFixed(0)}m`;
-      if(!_sendInterval){
-        _sendInterval=setInterval(()=>{
-          if(!_stompClient?.connected)return;
-          const payload={vehicleId:parseInt(_trackingVehicleId),latitude:lat,longitude:lng,speed:speed??0,accuracy:accuracy??0,heading:heading??0};
-          _stompClient.send('/app/tracking_localization',{},JSON.stringify(payload));
-          _trackPackets++;
-          document.getElementById('track-label').textContent=`🚑 Viatura #${vehicleId} — ${_trackPackets} pacotes enviados`;
-        },5000);
-      }
-    },err=>{
-      if(err.code === 1){
-        document.getElementById('track-info').textContent='⚠️ Permissão de GPS negada. Ativando simulador de rota...';
-        startSimulatedTracking(vehicleId);
-        return;
-      }
-      document.getElementById('track-info').textContent='❌ Erro GPS: '+err.message;
-    },{enableHighAccuracy:true,timeout:15000,maximumAge:2000});
+    let currentPos=null;
+    const gpsOpts={enableHighAccuracy:true,timeout:15000,maximumAge:2000};
+    if(navigator.geolocation){
+      _watchId=navigator.geolocation.watchPosition(pos=>{
+        currentPos=pos;
+        const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+        document.getElementById('track-info').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} · ±${(accuracy||0).toFixed(0)}m`;
+      },err=>{
+        if(err.code===1){
+          document.getElementById('track-info').textContent='⚠️ Permissão negada. Ativando simulador...';
+          startSimulatedTracking(vehiculeId);
+          return;
+        }
+        document.getElementById('track-info').textContent='❌ Erro GPS: '+err.message;
+      },gpsOpts);
+    } else {
+      startSimulatedTracking(vehiculeId);
+      return;
+    }
+    _sendInterval=setInterval(()=>{
+      if(!_socket?.connected||!currentPos)return;
+      const {latitude,longitude,speed,accuracy,heading}=currentPos.coords;
+      const payload={vehiculeId:_trackingVehicleId,eventId:crypto.randomUUID(),sequence:_trackPackets,latitude,longitude,speed:speed??0,accuracy:accuracy??0,heading:heading??0,capturedAt:new Date().toISOString()};
+      _socket.emit('location.update',payload);
+      _trackPackets++;
+      document.getElementById('track-label').textContent=`🚑 Viatura — ${_trackPackets} pacotes enviados`;
+    },5000);
   });
 }
 
@@ -426,9 +431,9 @@ function stopVehicleTracking(){
 
 // Override updateStatus to auto-start GPS tracking when accepting
 const _origUpdateStatus=updateStatus;
-window.updateStatus=async function(id,vehicleId,endpoint){
-  await _origUpdateStatus(id,vehicleId,endpoint);
-  if(endpoint==='accept'&&vehicleId)startVehicleTracking(vehicleId);
+window.updateStatus=async function(id,vehiculeId,endpoint,incidentId){
+  await _origUpdateStatus(id,vehiculeId,endpoint,incidentId);
+  if(endpoint==='accept'&&vehiculeId)startVehicleTracking(vehiculeId);
   if(endpoint==='complete'||endpoint==='arrived')stopVehicleTracking();
 };
 

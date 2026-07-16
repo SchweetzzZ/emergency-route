@@ -44,7 +44,7 @@
   </div>
   <nav class="flex-1 px-3 py-4 space-y-1">
     <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
-    <a href="dashboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <a href="dispatch-dashboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
     <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
     <a href="vehicles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Viaturas</a>
     <a href="incidents.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Incidentes</a>
@@ -100,6 +100,10 @@
               <option value="5000" selected>5 segundos</option>
               <option value="10000">10 segundos</option>
             </select>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="chk-follow" checked class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 bg-white/5 cursor-pointer"/>
+            <label for="chk-follow" class="text-xs text-gray-300 font-medium cursor-pointer select-none">Acompanhar viatura no mapa</label>
           </div>
         </div>
         <div class="mt-4 flex flex-col gap-2">
@@ -199,11 +203,11 @@ window.fetch=async(...args)=>{
 function authH(){return{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}}
 function logout(){localStorage.removeItem('token');window.location.href='index.html'}
 
-// Map
-const map=L.map('map').setView([-15.7801,-47.9292],13);
+// Map - Petrolina PE
+const map=L.map('map').setView([-9.39625,-40.48038],13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-let myMarker=null, watchId=null, stompClient=null, sendInterval=null, packetCount=0;
-let currentPos=null;
+let myMarker=null, watchId=null, sendInterval=null, packetCount=0;
+let currentPos=null, activeLat=null, activeLng=null;
 const vehicleMarkers={};
 
 const myIcon=L.divIcon({className:'',html:`<div style="width:20px;height:20px;border-radius:50%;background:#6366f1;border:3px solid white;box-shadow:0 0 14px rgba(99,102,241,0.9)"></div>`,iconSize:[20,20],iconAnchor:[10,10]});
@@ -221,126 +225,170 @@ function addLog(msg,color='text-gray-400'){
 }
 function clearLog(){document.getElementById('log').innerHTML='';}
 
-// WebSocket
+let _socket=null;
 function connectWS(){
   try{
-    const sock=new SockJS(`${API}/ws-tracking`);
-    stompClient=Stomp.over(sock);
-    stompClient.debug=null;
-    stompClient.connect({},()=>{
+    if(!window.io){
+      const s=document.createElement('script');
+      s.src='https://cdn.socket.io/4.8.0/socket.io.min.js';
+      s.onload=()=>connectWS();
+      document.head.appendChild(s);
+      return;
+    }
+    _socket=io(`${API}/realtime`,{auth:{token},transports:['websocket']});
+    _socket.on('connect',()=>{
       document.getElementById('ws-dot').className='ws-dot on';
       document.getElementById('ws-label').textContent='WebSocket: conectado';
       addLog('WebSocket conectado com sucesso','text-emerald-400');
-      // Subscrever atualizações de localização de TODAS as viaturas
-      stompClient.subscribe('/topic/vehicles',msg=>{
-        try{
-          const d=JSON.parse(msg.body);
-          const lat=d.latitude,lng=d.longitude,vid=d.vehicleId;
-          if(!lat||!lng)return;
-          addLog(`📡 Viatura #${vid} → (${lat.toFixed(5)}, ${lng.toFixed(5)}) ${d.speed?'@ '+(d.speed*3.6).toFixed(0)+'km/h':''}`,'text-blue-400');
-          // Atualizar ou criar marcador no mapa
-          const selVehicle=document.getElementById('sel-vehicle').value;
-          const isMine=selVehicle&&parseInt(selVehicle)===vid;
-          if(vehicleMarkers[vid]){
-            vehicleMarkers[vid].setLatLng([lat,lng]);
-          } else {
-            const icon=isMine?myIcon:remoteIcon;
-            vehicleMarkers[vid]=L.marker([lat,lng],{icon}).addTo(map)
-              .bindPopup(`<b>Viatura #${vid}</b><br>Lat: ${lat.toFixed(5)}<br>Lng: ${lng.toFixed(5)}`);
-          }
-          // Se for a viatura selecionada, centralizar mapa
-          if(isMine)map.panTo([lat,lng]);
-        }catch(e){}
+      // Receber atualizações de localização de viaturas
+      _socket.on('vehicule.location.updated',d=>{
+        const {vehiculeId:vid,latitude:lat,longitude:lng,speed}=d;
+        if(!lat||!lng)return;
+        addLog(`📡 Viatura ${vid} → (${lat.toFixed(5)}, ${lng.toFixed(5)}) ${speed?'@ '+(speed*3.6).toFixed(0)+'km/h':''}`, 'text-blue-400');
+        const selVehicle=document.getElementById('sel-vehicle').value;
+        const isMine=selVehicle&&selVehicle==vid;
+        if(vehicleMarkers[vid]){
+          vehicleMarkers[vid].setLatLng([lat,lng]);
+        } else {
+          const icon=isMine?myIcon:remoteIcon;
+          vehicleMarkers[vid]=L.marker([lat,lng],{icon}).addTo(map)
+            .bindPopup(`<b>Viatura ${vid}</b><br>Lat: ${lat.toFixed(5)}<br>Lng: ${lng.toFixed(5)}`);
+        }
+        if(isMine && document.getElementById('chk-follow').checked)map.panTo([lat,lng]);
       });
-    },()=>{
+    });
+    _socket.on('disconnect',()=>{
       document.getElementById('ws-dot').className='ws-dot off';
       document.getElementById('ws-label').textContent='WebSocket: desconectado';
       addLog('WebSocket desconectado – tentando reconectar...','text-amber-400');
-      setTimeout(connectWS,5000);
+    });
+    _socket.on('requires_auth',(msg)=>{
+      addLog('Auth WS: '+msg,'text-rose-400');
     });
   }catch(e){addLog('Erro ao conectar WebSocket','text-rose-400');}
 }
 
 // GPS
-function startTracking(){
+async function startTracking(){
   const vehicleId=document.getElementById('sel-vehicle').value;
   if(!vehicleId){addLog('⚠️ Selecione uma viatura antes de iniciar','text-amber-400');return;}
   const interval=parseInt(document.getElementById('sel-interval').value)||5000;
-  const simulateGPS=()=>{
-    addLog('⚠️ Permissão de GPS negada. Ativando simulador de rota...','text-amber-400');
+
+  // 1. Busca posição atual do veículo no banco
+  let baseLat=null, baseLng=null;
+  try{
+    const vRes=await fetch(`${API}/vehicules/${vehicleId}`,{headers:authH()});
+    if(vRes.ok){
+      const v=await vRes.json();
+      if(v.latitude&&v.longitude&&(v.latitude!==0||v.longitude!==0)){
+        baseLat=v.latitude;
+        baseLng=v.longitude;
+        addLog(`📍 Posição base carregada: (${baseLat.toFixed(5)}, ${baseLng.toFixed(5)})`,'text-gray-400');
+        if(document.getElementById('chk-follow').checked) {
+          map.setView([baseLat,baseLng],15);
+        }
+      }
+    }
+  }catch(e){}
+
+  // Função para simular o movimento (drift) a partir de uma coordenada
+  window.activateSimulatorFrom = (startLat, startLng) => {
+    if(sendInterval) {
+      clearInterval(sendInterval);
+      sendInterval=null;
+    }
+    
+    addLog('🔮 Movimento simulado ativado a partir da posição definida. Dica: Clique em qualquer ponto do mapa para reposicionar a viatura!','text-amber-400');
     document.getElementById('gps-dot').className='ws-dot on';
     document.getElementById('gps-label').textContent='GPS: simulado';
-    let lat = -23.55052;
-    let lng = -46.633308;
+    
+    activeLat=startLat;
+    activeLng=startLng;
+    
     sendInterval=setInterval(()=>{
-      lat += (Math.random() - 0.3) * 0.00015;
-      lng += (Math.random() - 0.3) * 0.00015;
-      document.getElementById('info-lat').textContent=lat.toFixed(7);
-      document.getElementById('info-lng').textContent=lng.toFixed(7);
-      document.getElementById('info-speed').textContent='40.0 km/h';
+      // Deriva leve simulando movimento
+      activeLat += (Math.random() - 0.48) * 0.00012;
+      activeLng += (Math.random() - 0.48) * 0.00012;
+      document.getElementById('info-lat').textContent=activeLat.toFixed(7);
+      document.getElementById('info-lng').textContent=activeLng.toFixed(7);
+      document.getElementById('info-speed').textContent='35.0 km/h';
       document.getElementById('info-accuracy').textContent='±5 m';
       document.getElementById('info-heading').textContent='45°';
-      if(!myMarker){myMarker=L.marker([lat,lng],{icon:myIcon}).addTo(map).bindPopup(`Viatura #${vehicleId}`);}
-      else{myMarker.setLatLng([lat,lng]);}
-      map.setView([lat,lng],16);
-      if(stompClient?.connected){
-        const payload={vehicleId:parseInt(vehicleId),latitude:lat,longitude:lng,speed:11.1,accuracy:5.0,heading:45.0};
+      
+      if(!myMarker){myMarker=L.marker([activeLat,activeLng],{icon:myIcon}).addTo(map).bindPopup(`Viatura`);}
+      else{myMarker.setLatLng([activeLat,activeLng]);}
+      
+      if(document.getElementById('chk-follow').checked) {
+        map.setView([activeLat,activeLng],16);
+      }
+      
+      if(_socket?.connected){
+        const payload={vehiculeId:vehicleId,eventId:crypto.randomUUID(),sequence:packetCount,latitude:activeLat,longitude:activeLng,speed:9.7,accuracy:5.0,heading:45.0,capturedAt:new Date().toISOString()};
         try{
-          stompClient.send('/app/tracking_localization',{},JSON.stringify(payload));
+          _socket.emit('location.update',payload);
           packetCount++;
           document.getElementById('info-count').textContent=packetCount;
-          addLog(`📤 Enviado #${packetCount}: (${lat.toFixed(5)}, ${lng.toFixed(5)}) @ 40.0km/h`,'text-emerald-400');
-        }catch(e){addLog('❌ Falha ao enviar via WebSocket','text-rose-400');}
+          addLog(`📤 #${packetCount}: (${activeLat.toFixed(5)}, ${activeLng.toFixed(5)}) @ 35km/h`,'text-emerald-400');
+        }catch(e){addLog('❌ Falha WebSocket','text-rose-400');}
       }
     },interval);
   };
 
-  if(!navigator.geolocation){
-    addLog('❌ Geolocalização não suportada neste navegador','text-rose-400');
-    simulateGPS();
-    return;
-  }
-
-  addLog(`🚀 Iniciando rastreamento para viatura #${vehicleId}`,'text-indigo-400');
+  addLog(`🚀 Iniciando rastreamento...`,'text-indigo-400');
   document.getElementById('btn-start').disabled=true;
   document.getElementById('btn-stop').disabled=false;
+
+  if(!navigator.geolocation){
+    addLog('❌ Geolocalização não suportada','text-rose-400');
+    window.activateSimulatorFrom(baseLat??-9.39625, baseLng??-40.48038);
+    return;
+  }
 
   const gpsOpts={enableHighAccuracy:true,timeout:10000,maximumAge:1000};
 
   watchId=navigator.geolocation.watchPosition(pos=>{
     currentPos=pos;
     const {latitude:lat,longitude:lng,speed,accuracy,heading}=pos.coords;
+    
+    // Se o usuário já clicou no mapa ativando o simulador manual, ignore novas atualizações do GPS real do browser
+    if(!watchId) return; 
+
+    activeLat=lat;
+    activeLng=lng;
     document.getElementById('gps-dot').className='ws-dot on';
     document.getElementById('gps-label').textContent='GPS: ativo';
-    document.getElementById('info-lat').textContent=lat.toFixed(7);
-    document.getElementById('info-lng').textContent=lng.toFixed(7);
+    document.getElementById('info-lat').textContent=activeLat.toFixed(7);
+    document.getElementById('info-lng').textContent=activeLng.toFixed(7);
     document.getElementById('info-speed').textContent=speed!=null?`${(speed*3.6).toFixed(1)} km/h`:'–';
     document.getElementById('info-accuracy').textContent=accuracy!=null?`±${accuracy.toFixed(0)} m`:'–';
     document.getElementById('info-heading').textContent=heading!=null?`${heading.toFixed(0)}°`:'–';
-
-    // Update map marker
-    if(!myMarker){myMarker=L.marker([lat,lng],{icon:myIcon}).addTo(map).bindPopup(`Viatura #${vehicleId}`);}
-    else{myMarker.setLatLng([lat,lng]);}
-    map.setView([lat,lng],16);
-  },err=>{
-    if(err.code===1){
-      simulateGPS();
-      return;
+    
+    if(!myMarker){myMarker=L.marker([activeLat,activeLng],{icon:myIcon}).addTo(map).bindPopup(`Viatura`);}
+    else{myMarker.setLatLng([activeLat,activeLng]);}
+    
+    if(document.getElementById('chk-follow').checked) {
+      map.setView([activeLat,activeLng],16);
     }
-    addLog(`❌ Erro GPS: ${err.message}`,'text-rose-400');
+  },err=>{
+    // Se for erro de permissão ou falha, cai no simulador
+    if(!watchId) return;
+    addLog(`⚠️ GPS real indisponível (${err.message}). Iniciando simulador...`,'text-amber-400');
+    if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+    window.activateSimulatorFrom(baseLat??-9.39625, baseLng??-40.48038);
   },gpsOpts);
 
-  // Send loop
+  // Send loop para GPS real (apenas envia se o watchId estiver ativo)
   sendInterval=setInterval(()=>{
-    if(!currentPos||!stompClient?.connected)return;
-    const {latitude,longitude,speed,accuracy,heading}=currentPos.coords;
-    const payload={vehicleId:parseInt(vehicleId),latitude,longitude,speed:speed??0,accuracy:accuracy??0,heading:heading??0};
+    if(!watchId) return; // Se mudou para simulador, esse loop é ignorado (pois simulateGPS cria seu próprio loop)
+    if(!activeLat||!activeLng||!_socket?.connected)return;
+    
+    const payload={vehiculeId:vehicleId,eventId:crypto.randomUUID(),sequence:packetCount,latitude:activeLat,longitude:activeLng,speed:11.1,accuracy:5.0,heading:45.0,capturedAt:new Date().toISOString()};
     try{
-      stompClient.send('/app/tracking_localization',{},JSON.stringify(payload));
+      _socket.emit('location.update',payload);
       packetCount++;
       document.getElementById('info-count').textContent=packetCount;
-      addLog(`📤 Enviado #${packetCount}: (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) @ ${(speed??0*3.6).toFixed(1)}km/h`,'text-emerald-400');
-    }catch(e){addLog('❌ Falha ao enviar via WebSocket','text-rose-400');}
+      addLog(`📤 #${packetCount}: (${activeLat.toFixed(5)}, ${activeLng.toFixed(5)}) @ 40km/h`,'text-emerald-400');
+    }catch(e){addLog('❌ Falha WebSocket','text-rose-400');}
   },interval);
 }
 
@@ -351,8 +399,61 @@ function stopTracking(){
   document.getElementById('btn-stop').disabled=true;
   document.getElementById('gps-dot').className='ws-dot off';
   document.getElementById('gps-label').textContent='GPS: inativo';
+  activeLat=null;
+  activeLng=null;
   addLog('⏹️ Transmissão encerrada pelo operador','text-amber-400');
 }
+
+// Clicar no mapa redireciona o veículo para as coordenadas clicadas e ativa o simulador a partir desse ponto
+map.on('click', (e) => {
+  const vehicleId=document.getElementById('sel-vehicle').value;
+  if (sendInterval || watchId) {
+    const {lat, lng} = e.latlng;
+    
+    // Se o GPS real estava ativo, limpa o watch para não sobrescrever a posição manual
+    if(watchId!=null){
+      navigator.geolocation.clearWatch(watchId);
+      watchId=null;
+      addLog('📍 GPS real desativado devido ao posicionamento manual no mapa.','text-purple-400');
+    }
+    
+    activeLat = lat;
+    activeLng = lng;
+    
+    if(!myMarker){myMarker=L.marker([lat,lng],{icon:myIcon}).addTo(map).bindPopup(`Viatura`);}
+    else{myMarker.setLatLng([lat,lng]);}
+    
+    if(document.getElementById('chk-follow').checked) {
+      map.setView([lat,lng],16);
+    }
+    
+    document.getElementById('info-lat').textContent=lat.toFixed(7);
+    document.getElementById('info-lng').textContent=lng.toFixed(7);
+    
+    // Envia o teletransporte inicial
+    if(_socket?.connected && vehicleId){
+      const payload={vehiculeId:vehicleId,eventId:crypto.randomUUID(),sequence:packetCount,latitude:lat,longitude:lng,speed:9.7,accuracy:5.0,heading:45.0,capturedAt:new Date().toISOString()};
+      try{
+        _socket.emit('location.update',payload);
+        packetCount++;
+        document.getElementById('info-count').textContent=packetCount;
+        addLog(`📍 Posição manual definida via clique: (${lat.toFixed(5)}, ${lng.toFixed(5)})`,'text-purple-400');
+      }catch(err){addLog('❌ Falha ao transmitir nova posição','text-rose-400');}
+    }
+    
+    // Inicia/reconfigura a simulação de movimento a partir da nova coordenada
+    window.activateSimulatorFrom(lat, lng);
+  }
+});
+
+// Se o operador arrastar o mapa manualmente, desmarca a opção de acompanhar para parar de mover a tela sozinho
+map.on('dragstart', () => {
+  const chk = document.getElementById('chk-follow');
+  if(chk && chk.checked) {
+    chk.checked = false;
+    addLog('Acompanhar desativado: mapa arrastado pelo usuário','text-gray-500');
+  }
+});
 
 // History
 async function loadHistory(){
@@ -360,7 +461,7 @@ async function loadHistory(){
   if(!vehicleId){addLog('Selecione uma viatura para ver o histórico','text-amber-400');return;}
   const hours=document.getElementById('sel-hours').value;
   try{
-    const res=await fetch(`${API}/tracking/${vehicleId}/history/hours?hours=${hours}`,{headers:authH()});
+    const res=await fetch(`${API}/tracking/telemetry/${vehicleId}?hours=${hours}`,{headers:authH()});
     const data=res.ok?await res.json():[];
     const el=document.getElementById('history-list');
     if(!data.length){el.innerHTML='<div class="text-gray-600">Nenhum registro encontrado</div>';return;}
@@ -380,7 +481,7 @@ async function loadHistory(){
 // Load vehicles into select
 async function loadVehicles(){
   try{
-    const res=await fetch(`${API}/vehicles`,{headers:authH()});
+    const res=await fetch(`${API}/vehicules`,{headers:authH()});
     const vehicles=res.ok?await res.json():[];
     const sel=document.getElementById('sel-vehicle');
     const icons={AMBULANCE:'🚑',FIRE_TRUCK:'🚒',POLICE_CAR:'🚓',CART:'🚐',TOW_TRUCK:'🚛'};
@@ -413,16 +514,7 @@ async function loadIncidentsOnMap(){
 // Init
 loadVehicles();
 loadIncidentsOnMap();
-
-const s1=document.createElement('script');
-s1.src='https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js';
-s1.onload=()=>{
-  const s2=document.createElement('script');
-  s2.src='https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js';
-  s2.onload=()=>{connectWS();addLog('Bibliotecas WebSocket carregadas','text-gray-600');};
-  document.head.appendChild(s2);
-};
-document.head.appendChild(s1);
+connectWS();
 </script>
 </body>
 </html>

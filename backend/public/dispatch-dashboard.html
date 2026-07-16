@@ -165,7 +165,7 @@
         <!-- Navigation -->
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
             <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
-            <a href="dashboard.html"
+            <a href="dispatch-dashboard.html"
                 class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium cursor-pointer">
                 <svg class="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -375,7 +375,7 @@
 
         const vehicleStatusMap = {
             AVAILABLE: { label: 'Disponível', color: 'bg-emerald-500/20 text-emerald-400', dot: 'bg-emerald-400' },
-            DISPACHED: { label: 'Despachada', color: 'bg-blue-500/20 text-blue-400', dot: 'bg-blue-400' },
+            DISPATCHED: { label: 'Despachada', color: 'bg-blue-500/20 text-blue-400', dot: 'bg-blue-400' },
             BUSY: { label: 'Ocupada', color: 'bg-amber-500/20 text-amber-400', dot: 'bg-amber-400' },
             OFFLINE: { label: 'Offline', color: 'bg-gray-500/20 text-gray-400', dot: 'bg-gray-400' },
             EN_ROUTE: { label: 'Em Rota', color: 'bg-purple-500/20 text-purple-400', dot: 'bg-purple-400' },
@@ -407,9 +407,9 @@
         async function loadDashboard() {
             try {
                 const [vehiclesRes, incidentsRes, dispatchesRes] = await Promise.all([
-                    fetch(`${API}/vehicles`, { headers: authHeaders() }),
+                    fetch(`${API}/vehicules`, { headers: authHeaders() }),
                     fetch(`${API}/incidents`, { headers: authHeaders() }),
-                    fetch(`${API}/dispatches`, { headers: authHeaders() })
+                    fetch(`${API}/dispatch`, { headers: authHeaders() })
                 ]);
 
                 const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
@@ -488,38 +488,40 @@
         loadDashboard();
         setInterval(loadDashboard, 15000);
 
-        // WebSocket
+        // WebSocket — Socket.IO nativo, namespace /realtime
         let stompClient = null;
         function connectWS() {
             try {
-                const SockJS = window.SockJS;
-                if (!SockJS) return;
-                const sock = new SockJS(`${API}/ws-tracking`);
-                stompClient = Stomp.over(sock);
-                stompClient.debug = null;
-                stompClient.connect({}, () => {
+                if (!window.io) {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.socket.io/4.8.0/socket.io.min.js';
+                    s.onload = () => connectWS();
+                    document.head.appendChild(s);
+                    return;
+                }
+                const wsToken = localStorage.getItem('token');
+                stompClient = io(`${API}/realtime`, { auth: { token: wsToken }, transports: ['websocket'] });
+                stompClient.on('connect', () => {
                     document.getElementById('ws-dot').className = 'ws-indicator connected';
                     document.getElementById('ws-status').textContent = 'WebSocket: conectado';
-                    stompClient.subscribe('/topic/location-updates', msg => {
-                        console.log('WS update:', msg.body);
+                    stompClient.on('vehicule.location.updated', data => {
+                        console.log('WS location update:', data);
                     });
-                }, () => {
+                    stompClient.on('dispatch_assigned', data => {
+                        console.log('Dispatch assigned:', data);
+                        loadDashboard();
+                    });
+                });
+                stompClient.on('disconnect', () => {
                     document.getElementById('ws-dot').className = 'ws-indicator disconnected';
                     document.getElementById('ws-status').textContent = 'WebSocket: desconectado';
                 });
+                stompClient.on('requires_auth', (msg) => {
+                    console.warn('Auth WS:', msg);
+                });
             } catch (e) { }
         }
-
-        // Load SockJS and Stomp
-        const s1 = document.createElement('script');
-        s1.src = 'https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js';
-        s1.onload = () => {
-            const s2 = document.createElement('script');
-            s2.src = 'https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js';
-            s2.onload = connectWS;
-            document.head.appendChild(s2);
-        };
-        document.head.appendChild(s1);
+        connectWS();
     </script>
 </body>
 

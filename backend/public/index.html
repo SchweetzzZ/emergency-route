@@ -162,7 +162,7 @@
         if (!res.ok) throw new Error('Credenciais inválidas');
         const data = await res.json();
         localStorage.setItem('token', data.access_token);
-        window.location.href = 'dispatches.html';
+        window.location.href = 'dispatch-dashboard.html';
       } catch(err) {
         errDiv.textContent = err.message || 'Erro ao conectar ao servidor';
         errDiv.classList.remove('hidden');
@@ -210,7 +210,7 @@
     }
 
     // Redirect if already logged in
-    if (localStorage.getItem('token')) window.location.href = 'dispatches.html';
+    if (localStorage.getItem('token')) window.location.href = 'dispatch-dashboard.html';
   </script>
 </body>
 </html>
