@@ -1,1598 +1,528 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle — Despacho de Emergência</title>
-    
-    <!-- Tailwind CSS -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EmergencyTrack – Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            dark: '#0b0f19',
-                            card: '#151b2c',
-                            border: '#1f293d',
-                            accent: '#4f46e5',
-                            emerald: '#10b981',
-                            rose: '#f43f5e',
-                            amber: '#f59e0b'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
     <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #0b0f19;
+            background: #0a0e1a;
+            color: #e2e8f0;
         }
-        /* Custom scrollbar for dark theme */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+
+        .sidebar {
+            background: linear-gradient(180deg, #0f172a 0%, #1a1f35 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
         }
-        ::-webkit-scrollbar-track {
-            background: #0b0f19;
+
+        .nav-item {
+            transition: all 0.2s;
+            border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #1f293d;
-            border-radius: 3px;
+
+        .nav-item:hover {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #374151;
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.25);
+            color: #818cf8;
+            border-left: 3px solid #6366f1;
         }
-        /* Leaflet custom dark theme */
-        .leaflet-container {
-            background: #0b0f19;
-            font-family: inherit;
+
+        .card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            transition: all 0.3s;
         }
-        .leaflet-bar a {
-            background-color: #151b2c !important;
-            color: #e2e8f0 !important;
-            border-bottom: 1px solid #1f293d !important;
+
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
         }
-        .leaflet-bar a:hover {
-            background-color: #1f293d !important;
+
+        .stat-card {
+            position: relative;
+            overflow: hidden;
         }
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background-color: #151b2c !important;
-            color: #e2e8f0 !important;
-            border: 1px solid #1f293d;
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            opacity: 0.15;
+            transform: translate(20px, -20px);
+        }
+
+        .stat-card.indigo::before {
+            background: #6366f1;
+        }
+
+        .stat-card.emerald::before {
+            background: #10b981;
+        }
+
+        .stat-card.amber::before {
+            background: #f59e0b;
+        }
+
+        .stat-card.rose::before {
+            background: #f43f5e;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .top-header {
+            background: rgba(10, 14, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .ws-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .ws-indicator.connected {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .ws-indicator.disconnected {
+            background: #6b7280;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.5
+            }
         }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col">
 
-    <!-- Top Navigation Bar -->
-    <header class="bg-brand-card border-b border-brand-border px-6 py-4 flex items-center justify-between z-10">
-        <div class="flex items-center gap-3">
-            <div class="bg-rose-600/20 p-2.5 rounded-xl border border-rose-500/30 flex items-center justify-center">
-                <i class="fa-solid fa-truck-medical text-rose-500 text-xl animate-pulse"></i>
+<body class="min-h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar w-64 min-h-screen flex flex-col fixed left-0 top-0 h-full z-30">
+        <!-- Brand -->
+        <div class="flex items-center gap-3 px-6 py-5 border-b border-white/5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
             </div>
             <div>
-                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                    ResgateFácil <span class="text-xs bg-rose-600/20 text-rose-400 font-semibold px-2 py-0.5 rounded-md border border-rose-500/20">DESPACHO</span>
-                </h1>
-                <p class="text-xs text-slate-400">Sistema Integrado de Operações e Monitoramento</p>
+                <div class="text-white font-bold text-sm leading-tight">EmergencyTrack</div>
+                <div class="text-gray-500 text-xs">v2.0 · Operacional</div>
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
-            <!-- Connection Status -->
-            <div class="flex items-center gap-6 text-sm bg-brand-dark/50 px-4 py-2 rounded-lg border border-brand-border">
-                <div class="flex items-center gap-2">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    <span class="text-xs text-slate-300">API: <strong class="text-emerald-400">Online</strong></span>
-                </div>
-                <div class="flex items-center gap-2 border-l border-brand-border pl-4">
-                    <span id="socket-indicator" class="relative flex h-2 w-2">
-                        <span id="socket-ping" class="absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
-                        <span id="socket-dot" class="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
-                    </span>
-                    <span class="text-xs text-slate-300">Socket: <strong id="socket-status" class="text-slate-400">Desconectado</strong></span>
-                </div>
-            </div>
+        <!-- Navigation -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
+            <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
+            <a href="dispatch-dashboard.html"
+                class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium cursor-pointer">
+                <svg class="w-4.5 h-4.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Dashboard
+            </a>
+            <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
+            <a href="vehicles.html"
+                class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                Viaturas
+            </a>
+            <a href="incidents.html"
+                class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Incidentes
+            </a>
+            <a href="dispatches.html"
+                class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Despachos
+            </a>
+            <a href="tracking.html"
+                class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Rastreamento
+            </a>
+        </nav>
 
-            <!-- User Auth Profile -->
-            <div id="user-profile" class="flex items-center gap-3">
-                <span class="text-sm text-slate-400 hidden sm:inline" id="user-email">Carregando...</span>
-                <button onclick="logout()" class="text-xs bg-brand-border hover:bg-rose-950/40 hover:text-rose-400 text-slate-300 px-3 py-2 rounded-lg border border-brand-border transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+        <!-- User Info -->
+        <div class="px-4 py-4 border-t border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold"
+                    id="user-avatar">OP</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-white truncate" id="user-name">Operador</div>
+                    <div class="text-xs text-gray-500">Logado</div>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-400 transition-colors" title="Sair">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                 </button>
             </div>
         </div>
-    </header>
+    </aside>
 
-    <!-- Main Container -->
-    <div class="flex-1 flex overflow-hidden">
-        <!-- Sidebar Menu -->
-        <aside class="w-64 bg-brand-card border-r border-brand-border flex flex-col justify-between">
-            <div class="p-4 flex flex-col gap-1.5">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2">Menu Principal</p>
-                
-                <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="menu-tab-btn active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition text-left bg-brand-accent/10 border border-brand-accent/25 text-white">
-                    <i class="fa-solid fa-map-location-dot text-brand-accent"></i>
-                    <span>Painel do Mapa</span>
-                </button>
-                
-                <button onclick="switchTab('incidents')" id="btn-tab-incidents" class="menu-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition text-left text-slate-400 hover:text-white hover:bg-slate-800/30">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    <span>Ocorrências</span>
-                    <span id="incidents-badge" class="ml-auto text-[10px] bg-rose-600/30 text-rose-400 px-2 py-0.5 rounded-full border border-rose-500/20 font-bold">0</span>
-                </button>
-                
-                <button onclick="switchTab('vehicles')" id="btn-tab-vehicles" class="menu-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition text-left text-slate-400 hover:text-white hover:bg-slate-800/30">
-                    <i class="fa-solid fa-truck-shield"></i>
-                    <span>Frota de Viaturas</span>
-                    <span id="vehicles-badge" class="ml-auto text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-brand-border font-bold">0</span>
-                </button>
-                
-                <button onclick="switchTab('simulator')" id="btn-tab-simulator" class="menu-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition text-left text-slate-400 hover:text-white hover:bg-slate-800/30">
-                    <i class="fa-solid fa-tower-broadcast text-amber-500"></i>
-                    <span>Simulador de Campo</span>
-                    <span id="simulator-badge" class="ml-auto text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold">0</span>
+    <!-- MAIN CONTENT -->
+    <main class="ml-64 flex-1 flex flex-col min-h-screen">
+        <!-- Top Header -->
+        <header class="top-header sticky top-0 z-20 flex items-center justify-between px-8 py-4">
+            <div>
+                <h1 class="text-xl font-bold text-white">Dashboard</h1>
+                <p class="text-gray-500 text-xs mt-0.5">Visão geral em tempo real do sistema</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-xs text-gray-400">
+                    <span class="ws-indicator disconnected" id="ws-dot"></span>
+                    <span id="ws-status">WebSocket: desconectado</span>
+                </div>
+                <button onclick="refreshAll()"
+                    class="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-2 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Atualizar
                 </button>
             </div>
+        </header>
 
-            <!-- Stats Summary in Sidebar Footer -->
-            <div class="p-4 border-t border-brand-border bg-brand-dark/30">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Desempenho Geral</p>
-                <div class="grid grid-cols-2 gap-2 text-center">
-                    <div class="bg-brand-card p-2 rounded-lg border border-brand-border">
-                        <span class="text-xs text-slate-400">Atendidos</span>
-                        <h4 id="stats-resolved" class="text-lg font-bold text-emerald-400">0</h4>
-                    </div>
-                    <div class="bg-brand-card p-2 rounded-lg border border-brand-border">
-                        <span class="text-xs text-slate-400">Em Curso</span>
-                        <h4 id="stats-active" class="text-lg font-bold text-amber-400">0</h4>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="flex-1 flex flex-col relative overflow-hidden bg-brand-dark">
-            
-            <!-- TAB 1: DASHBOARD MAP VIEW -->
-            <div id="tab-dashboard" class="tab-content flex-1 flex flex-col lg:flex-row overflow-hidden">
-                <!-- Map Container (70%) -->
-                <div class="flex-1 relative min-h-[400px]">
-                    <div id="map" class="absolute inset-0"></div>
-                    
-                    <!-- Floating Quick Legend -->
-                    <div class="absolute bottom-6 left-6 z-[1000] bg-brand-card/95 backdrop-blur-md p-4 rounded-xl border border-brand-border shadow-2xl max-w-xs text-xs">
-                        <h5 class="font-bold text-white mb-2 flex items-center gap-1.5"><i class="fa-solid fa-list text-brand-accent"></i> Legenda do Mapa</h5>
-                        <div class="space-y-2 text-slate-300">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-[0_0_6px_#f43f5e]"></span>
-                                <span>Ocorrência Pendente</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_#f59e0b]"></span>
-                                <span>Ocorrência Em Curso</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-                                <span>Viatura Disponível</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block animate-pulse"></span>
-                                <span>Viatura em Rota / Atendimento</span>
-                            </div>
+        <div class="flex-1 p-8 space-y-8 overflow-y-auto">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-4 gap-5">
+                <div class="card stat-card indigo p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-gray-400 text-xs font-medium uppercase tracking-wider">Viaturas</span>
+                        <div class="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
                         </div>
                     </div>
+                    <div class="text-3xl font-bold text-white" id="stat-vehicles">–</div>
+                    <div class="text-xs text-gray-500 mt-1">Total cadastradas</div>
                 </div>
 
-                <!-- Right Side Feed Panel (30%) -->
-                <div class="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-brand-border bg-brand-card flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-brand-border flex items-center justify-between bg-brand-dark/20">
-                        <h3 class="font-bold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-rose-500"></i> Despachos Ativos
-                        </h3>
-                        <button onclick="refreshData()" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1">
-                            <i class="fa-solid fa-arrows-rotate"></i> Atualizar
-                        </button>
-                    </div>
-
-                    <!-- Dispatch Feed -->
-                    <div id="dispatch-feed-list" class="flex-1 overflow-y-auto p-4 space-y-3">
-                        <!-- Filled by JS -->
-                        <div class="text-center py-8 text-slate-500">
-                            <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
-                            Sem despachos em andamento.
+                <div class="card stat-card emerald p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-gray-400 text-xs font-medium uppercase tracking-wider">Disponíveis</span>
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: INCIDENTS MANAGEMENT -->
-            <div id="tab-incidents" class="tab-content flex-1 overflow-y-auto p-6 hidden">
-                <div class="max-w-6xl mx-auto space-y-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">Central de Ocorrências</h2>
-                            <p class="text-sm text-slate-400">Registre incidentes na central e despache viaturas de emergência.</p>
-                        </div>
-                        <button onclick="openNewIncidentModal()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-rose-900/20">
-                            <i class="fa-solid fa-plus"></i> Registrar Nova Ocorrência
-                        </button>
-                    </div>
-
-                    <!-- Incidents Table / Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="incidents-grid">
-                        <!-- Cards added dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: FLEET MANAGEMENT -->
-            <div id="tab-vehicles" class="tab-content flex-1 overflow-y-auto p-6 hidden">
-                <div class="max-w-6xl mx-auto space-y-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">Controle de Viaturas</h2>
-                            <p class="text-sm text-slate-400">Monitore, cadastre e gerencie a frota de viaturas disponíveis.</p>
-                        </div>
-                        <button onclick="openNewVehicleModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-                            <i class="fa-solid fa-plus"></i> Cadastrar Nova Viatura
-                        </button>
-                    </div>
-
-                    <!-- Vehicles List Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="vehicles-grid">
-                        <!-- Cards added dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: FIELD SIMULATOR -->
-            <div id="tab-simulator" class="tab-content flex-1 overflow-y-auto p-6 hidden">
-                <div class="max-w-4xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-tower-broadcast text-amber-500 animate-pulse"></i>
-                            Simulador de Rádio e Campo
-                        </h2>
-                        <p class="text-sm text-slate-400">Simule a perspectiva do motorista da viatura recebendo o chamado e atualizando o status do resgate.</p>
-                    </div>
-
-                    <div id="simulator-active-list" class="space-y-4">
-                        <!-- Added dynamically -->
-                    </div>
-                </div>
-            </div>
-            
-        </main>
-    </div>
-
-    <!-- MODAL: LOGIN / REGISTER -->
-    <div id="auth-modal" class="fixed inset-0 z-[9999] bg-brand-dark/90 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-brand-card border border-brand-border w-full max-w-md rounded-2xl shadow-2xl p-8 space-y-6">
-            <div class="text-center">
-                <div class="bg-rose-600/20 w-12 h-12 rounded-xl border border-rose-500/30 flex items-center justify-center mx-auto mb-3">
-                    <i class="fa-solid fa-shield-halved text-rose-500 text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white" id="auth-title">Acesso Restrito</h3>
-                <p class="text-xs text-slate-400 mt-1">Identifique-se para gerenciar o painel de despacho.</p>
-            </div>
-
-            <!-- Tabs Login/Register -->
-            <div class="flex border-b border-brand-border">
-                <button onclick="setAuthTab('login')" id="auth-tab-login" class="flex-1 py-2 text-center text-sm font-semibold border-b-2 border-brand-accent text-white">Entrar</button>
-                <button onclick="setAuthTab('register')" id="auth-tab-register" class="flex-1 py-2 text-center text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">Criar Conta</button>
-            </div>
-
-            <!-- Form -->
-            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                <!-- Name (Only register) -->
-                <div id="auth-field-name" class="space-y-1.5 hidden">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Nome Completo</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-user absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <input type="text" id="auth-name" class="w-full bg-brand-dark border border-brand-border rounded-xl px-10 py-3 text-sm focus:border-brand-accent focus:outline-none" placeholder="Ex: Operador Silva">
-                    </div>
+                    <div class="text-3xl font-bold text-white" id="stat-available">–</div>
+                    <div class="text-xs text-gray-500 mt-1">Prontas para despacho</div>
                 </div>
 
-                <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Corporativo</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <input type="email" id="auth-email" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-10 py-3 text-sm focus:border-brand-accent focus:outline-none" placeholder="operador@resgate.com">
-                    </div>
-                </div>
-
-                <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Senha</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-lock absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <input type="password" id="auth-password" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-10 py-3 text-sm focus:border-brand-accent focus:outline-none" placeholder="••••••••">
-                    </div>
-                </div>
-
-                <!-- Phone (Only register) -->
-                <div id="auth-field-phone" class="space-y-1.5 hidden">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Telefone de Contato</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-phone absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <input type="text" id="auth-phone" class="w-full bg-brand-dark border border-brand-border rounded-xl px-10 py-3 text-sm focus:border-brand-accent focus:outline-none" placeholder="(87) 99999-9999">
-                    </div>
-                </div>
-
-                <!-- Admin Role Selection (Only Register - simplifies testing) -->
-                <div id="auth-field-role" class="space-y-1.5 hidden">
-                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cargo / Nível</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-user-gear absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <select id="auth-role" class="w-full bg-brand-dark border border-brand-border rounded-xl px-10 py-3 text-sm focus:border-brand-accent focus:outline-none text-slate-300">
-                            <option value="ADMIN">Administrador (Permissão Total)</option>
-                            <option value="USER">Usuário Comum (Apenas Leitura)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-indigo-950/50 text-sm">
-                    Confirmar
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: REGISTRAR OCORRÊNCIA -->
-    <div id="incident-modal" class="fixed inset-0 z-[9999] bg-brand-dark/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-brand-card border border-brand-border w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-brand-border pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Registrar Ocorrência</h3>
-                <button onclick="closeIncidentModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <form onsubmit="handleCreateIncident(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Tipo</label>
-                        <select id="inc-type" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300">
-                            <option value="ACCIDENT">Acidente de Trânsito</option>
-                            <option value="FIRE">Incêndio</option>
-                            <option value="MEDICAL">Emergência Médica</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Prioridade (1 - 100)</label>
-                        <div class="flex items-center gap-3">
-                            <input type="range" id="inc-priority" min="1" max="100" value="50" class="w-full accent-rose-500" oninput="document.getElementById('inc-prio-val').innerText = this.value">
-                            <span id="inc-prio-val" class="text-sm font-bold text-rose-400 min-w-[28px]">50</span>
+                <div class="card stat-card amber p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-gray-400 text-xs font-medium uppercase tracking-wider">Incidentes</span>
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
                         </div>
                     </div>
+                    <div class="text-3xl font-bold text-white" id="stat-incidents">–</div>
+                    <div class="text-xs text-gray-500 mt-1">Ativos / Pendentes</div>
                 </div>
 
-                <div class="space-y-1">
-                    <label class="text-xs font-semibold text-slate-400 uppercase">Localização (Endereço/Bairro)</label>
-                    <input type="text" id="inc-location" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300" placeholder="Ex: Av. Adolfo Viana, Centro, Juazeiro">
-                </div>
-
-                <div class="space-y-1">
-                    <label class="text-xs font-semibold text-slate-400 uppercase">Descrição da Emergência</label>
-                    <textarea id="inc-description" rows="2" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300" placeholder="Ex: Colisão entre moto e carro com vítima inconsciente..."></textarea>
-                </div>
-
-                <div class="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3">
-                    <p class="text-xs text-indigo-400 mb-2 flex items-center gap-1"><i class="fa-solid fa-map-pin"></i> Coordenadas Geográficas (Você pode clicar no mapa para preencher!)</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-slate-400 uppercase">Latitude</label>
-                            <input type="number" step="any" id="inc-lat" required class="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-xs text-slate-300">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-slate-400 uppercase">Longitude</label>
-                            <input type="number" step="any" id="inc-lng" required class="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-xs text-slate-300">
+                <div class="card stat-card rose p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-gray-400 text-xs font-medium uppercase tracking-wider">Despachos</span>
+                        <div class="w-9 h-9 rounded-xl bg-rose-500/20 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
                         </div>
                     </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-3 border-t border-brand-border">
-                    <button type="button" onclick="closeIncidentModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancelar</button>
-                    <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition shadow-lg">Confirmar Registro</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: REGISTRAR VIATURA -->
-    <div id="vehicle-modal" class="fixed inset-0 z-[9999] bg-brand-dark/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-brand-card border border-brand-border w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-brand-border pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-truck-shield text-indigo-500"></i> Cadastrar Nova Viatura</h3>
-                <button onclick="closeVehicleModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <form onsubmit="handleCreateVehicle(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Identificação da Viatura</label>
-                        <input type="text" id="veh-name" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300" placeholder="Ex: Alfa-01 (Ambulância)">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Placa</label>
-                        <input type="text" id="veh-plate" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300" placeholder="Ex: ABC1D23">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Tipo</label>
-                        <select id="veh-type" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300">
-                            <option value="AMBULANCE">Ambulância (SAMU)</option>
-                            <option value="FIRE_TRUCK">Autobomba / Incêndio</option>
-                            <option value="POLICE_CAR">Policial</option>
-                            <option value="TOW_TRUCK">Guincho / Reboque</option>
-                        </select>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-xs font-semibold text-slate-400 uppercase">Status Inicial</label>
-                        <select id="veh-status" required class="w-full bg-brand-dark border border-brand-border rounded-xl px-4 py-2.5 text-sm focus:border-brand-accent focus:outline-none text-slate-300">
-                            <option value="AVAILABLE">Disponível</option>
-                            <option value="OFFLINE">Fora de Serviço (Offline)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3">
-                    <p class="text-xs text-indigo-400 mb-2 flex items-center gap-1"><i class="fa-solid fa-map-pin"></i> Coordenadas Iniciais</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-slate-400 uppercase">Latitude</label>
-                            <input type="number" step="any" id="veh-lat" required class="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-xs text-slate-300">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-slate-400 uppercase">Longitude</label>
-                            <input type="number" step="any" id="veh-lng" required class="w-full bg-brand-dark border border-brand-border rounded-lg px-3 py-1.5 text-xs text-slate-300">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-3 border-t border-brand-border">
-                    <button type="button" onclick="closeVehicleModal()" class="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancelar</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition shadow-lg">Cadastrar Viatura</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: DESPACHAR MANUALMENTE -->
-    <div id="dispatch-modal" class="fixed inset-0 z-[9999] bg-brand-dark/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-        <div class="bg-brand-card border border-brand-border w-full max-w-xl rounded-2xl shadow-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-brand-border pb-3">
-                <div>
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-truck-ramp-box text-rose-500"></i> Despachar Viatura</h3>
-                    <p class="text-xs text-slate-400 mt-1" id="disp-incident-desc"></p>
-                </div>
-                <button onclick="closeDispatchModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="space-y-3">
-                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Viaturas Disponíveis Próximas (Ordenadas por Proximidade)</h4>
-                
-                <div id="disp-vehicles-list" class="max-h-[300px] overflow-y-auto space-y-2 pr-1">
-                    <!-- Dynamic List of closest vehicles -->
+                    <div class="text-3xl font-bold text-white" id="stat-dispatches">–</div>
+                    <div class="text-xs text-gray-500 mt-1">Em andamento</div>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between pt-3 border-t border-brand-border">
-                <span class="text-xs text-slate-400">As distâncias são calculadas via Haversine.</span>
-                <button type="button" onclick="closeDispatchModal()" class="bg-brand-border hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm transition">Fechar</button>
+            <!-- Two columns -->
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Recent Incidents -->
+                <div class="card p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-white text-sm">Incidentes Recentes</h3>
+                        <a href="incidents.html" class="text-xs text-indigo-400 hover:text-indigo-300">Ver todos →</a>
+                    </div>
+                    <div id="recent-incidents" class="space-y-3">
+                        <div class="text-gray-500 text-sm text-center py-6">Carregando...</div>
+                    </div>
+                </div>
+
+                <!-- Recent Dispatches -->
+                <div class="card p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-white text-sm">Despachos Recentes</h3>
+                        <a href="dispatches.html" class="text-xs text-indigo-400 hover:text-indigo-300">Ver todos →</a>
+                    </div>
+                    <div id="recent-dispatches" class="space-y-3">
+                        <div class="text-gray-500 text-sm text-center py-6">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicles status grid -->
+            <div class="card p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-white text-sm">Status das Viaturas</h3>
+                    <a href="vehicles.html" class="text-xs text-indigo-400 hover:text-indigo-300">Gerenciar →</a>
+                </div>
+                <div id="vehicles-grid" class="grid grid-cols-3 gap-3">
+                    <div class="col-span-3 text-gray-500 text-sm text-center py-6">Carregando viaturas...</div>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- Socket.io & Leaflet scripts -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
     <script>
-        // API Base URL
-        const API_URL = window.location.origin;
-        
-        // State
-        let map = null;
-        let mapMarkers = {
-            incidents: {},
-            vehicles: {}
-        };
-        let appState = {
-            incidents: [],
-            vehicles: [],
-            assignments: [],
-            user: null,
-            token: localStorage.getItem('token') || null,
-            mapClickCoords: null
-        };
-        
-        let socket = null;
-        let simulatedRoutes = {}; // To store intervals for vehicles simulated movements
+        const API = window.location.origin;
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'index.html';
 
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', () => {
-            initMap();
-            checkAuth();
-            setupSocketConnection();
-            
-            // Auto refresh state every 10 seconds
-            setInterval(() => {
-                if (appState.token) {
-                    refreshData();
-                }
-            }, 10000);
-        });
-
-        // Initialize Map
-        function initMap() {
-            // Center around Juazeiro-Petrolina region
-            map = L.map('map', {
-                zoomControl: true,
-                attributionControl: false
-            }).setView([-9.4142, -40.5031], 13);
-
-            // Dark map tiles (CartoDB Dark Matter)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19
-            }).addTo(map);
-
-            // Click listener to easily capture coordinates for creating incidents/vehicles
-            map.on('click', (e) => {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
-                appState.mapClickCoords = { lat, lng };
-                
-                // Show a temporary red circle marker
-                if (window.tempClickMarker) {
-                    map.removeLayer(window.tempClickMarker);
-                }
-                window.tempClickMarker = L.circleMarker([lat, lng], {
-                    color: '#818cf8',
-                    fillColor: '#818cf8',
-                    fillOpacity: 0.5,
-                    radius: 8
-                }).addTo(map)
-                .bindPopup(`<div class="text-xs">
-                    <p class="font-bold text-white mb-1">Ponto Selecionado</p>
-                    <p class="text-slate-300">Lat: ${lat.toFixed(5)}</p>
-                    <p class="text-slate-300">Lng: ${lng.toFixed(5)}</p>
-                    <div class="flex gap-2 mt-2">
-                        <button onclick="fillCoords('incident', ${lat}, ${lng})" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[10px]">Ocorrência</button>
-                        <button onclick="fillCoords('vehicle', ${lat}, ${lng})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-1 rounded text-[10px]">Viatura</button>
-                    </div>
-                </div>`)
-                .openPopup();
-            });
-        }
-
-        // Fill coordinates in forms
-        function fillCoords(type, lat, lng) {
-            if (type === 'incident') {
-                openNewIncidentModal();
-                document.getElementById('inc-lat').value = lat;
-                document.getElementById('inc-lng').value = lng;
-            } else if (type === 'vehicle') {
-                openNewVehicleModal();
-                document.getElementById('veh-lat').value = lat;
-                document.getElementById('veh-lng').value = lng;
-            }
-            if (window.tempClickMarker) {
-                map.removeLayer(window.tempClickMarker);
-                window.tempClickMarker = null;
-            }
-        }
-
-        // Setup WebSocket connection using socket.io
-        function setupSocketConnection() {
-            if (socket) {
-                socket.disconnect();
-            }
-
-            const token = appState.token;
-            // Connect to /realtime namespace
-            socket = io(`${API_URL}/realtime`, {
-                auth: {
-                    token: token
-                },
-                transports: ['websocket', 'polling']
-            });
-
-            socket.on('connect', () => {
-                document.getElementById('socket-status').innerText = 'Conectado';
-                document.getElementById('socket-status').className = 'text-emerald-400';
-                document.getElementById('socket-dot').className = 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500';
-                document.getElementById('socket-ping').className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
-                console.log('Realtime socket connected!');
-                
-                // Join channels for tracking vehicles
-                appState.vehicles.forEach(v => {
-                    socket.emit('vehicule_join', { vehiculeId: v.id });
-                });
-            });
-
-            socket.on('disconnect', () => {
-                document.getElementById('socket-status').innerText = 'Desconectado';
-                document.getElementById('socket-status').className = 'text-slate-400';
-                document.getElementById('socket-dot').className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-500';
-                document.getElementById('socket-ping').className = 'absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75';
-            });
-
-            // Listen for realtime vehicle updates
-            socket.on('vehicule.location.updated', (data) => {
-                console.log('Location update received:', data);
-                updateVehiclePositionOnMap(data);
-                // Also update local fleet status and lat/lng
-                const index = appState.vehicles.findIndex(v => v.id === data.vehiculeId);
-                if (index !== -1) {
-                    appState.vehicles[index].latitude = data.latitude;
-                    appState.vehicles[index].longitude = data.longitude;
-                    appState.vehicles[index].lastSeen = data.timestamp;
-                    renderVehicles();
-                }
-            });
-
-            // Listen for dispatch assignment
-            socket.on('dispatch_assigned', (data) => {
-                console.log('Dispatch assigned event:', data);
-                showToast(`Viatura despachada!`, `Ocorrência atribuída à viatura.`);
-                refreshData();
-            });
-        }
-
-        // Update vehicle on map
-        function updateVehiclePositionOnMap(data) {
-            const vId = data.vehiculeId;
-            const marker = mapMarkers.vehicles[vId];
-            if (marker) {
-                marker.setLatLng([data.latitude, data.longitude]);
-                const popupContent = marker.getPopup().getContent();
-                // Simple regex-based update of coordinates in popup to keep it simple, or re-render
-                marker.bindPopup(createVehiclePopupContent(appState.vehicles.find(v => v.id === vId) || {
-                    id: vId,
-                    name: 'Viatura',
-                    latitude: data.latitude,
-                    longitude: data.longitude
-                }));
-            } else {
-                // If it is a new vehicle location we don't have a marker for yet, refresh
-                refreshData();
-            }
-        }
-
-        // Helper for Toast Notifications
-        function showToast(title, body) {
-            // Web Notification API or beautiful transient elements
-            if (Notification.permission === "granted") {
-                new Notification(title, { body });
-            } else {
-                console.log(`[ALERT] ${title}: ${body}`);
-            }
-        }
-
-        // Fetch wrapper to automatically inject JWT token
-        async function fetchAPI(endpoint, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
-            if (appState.token) {
-                headers['Authorization'] = `Bearer ${appState.token}`;
-            }
-            
-            const res = await fetch(`${API_URL}${endpoint}`, {
-                ...options,
-                headers
-            });
-
-            if (res.status === 401) {
-                // Unauthorized! Show authentication modal
-                appState.token = null;
+        const orgFetch = window.fetch;
+        window.fetch = async (...args) => {
+            const r = await orgFetch(...args);
+            if (r.status === 401 || r.status === 403) {
                 localStorage.removeItem('token');
-                document.getElementById('auth-modal').classList.remove('hidden');
-                throw new Error("Sessão expirada. Autentique-se novamente.");
+                window.location.href = 'index.html';
             }
+            return r;
+        };
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.message || `Erro no servidor: ${res.status}`);
-            }
+        function authHeaders() { return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }; }
 
-            return res.json().catch(() => ({}));
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
         }
 
-        // Check Auth on Start
-        async function checkAuth() {
-            if (!appState.token) {
-                document.getElementById('auth-modal').classList.remove('hidden');
-                return;
-            }
-            
+        const vehicleStatusMap = {
+            AVAILABLE: { label: 'Disponível', color: 'bg-emerald-500/20 text-emerald-400', dot: 'bg-emerald-400' },
+            DISPATCHED: { label: 'Despachada', color: 'bg-blue-500/20 text-blue-400', dot: 'bg-blue-400' },
+            BUSY: { label: 'Ocupada', color: 'bg-amber-500/20 text-amber-400', dot: 'bg-amber-400' },
+            OFFLINE: { label: 'Offline', color: 'bg-gray-500/20 text-gray-400', dot: 'bg-gray-400' },
+            EN_ROUTE: { label: 'Em Rota', color: 'bg-purple-500/20 text-purple-400', dot: 'bg-purple-400' },
+            AT_INCIDENT: { label: 'No Local', color: 'bg-rose-500/20 text-rose-400', dot: 'bg-rose-400' }
+        };
+
+        const incidentStatusMap = {
+            PENDING: { label: 'Pendente', color: 'bg-amber-500/20 text-amber-400' },
+            IN_PROGRESS: { label: 'Em andamento', color: 'bg-blue-500/20 text-blue-400' },
+            RESOLVED: { label: 'Resolvido', color: 'bg-emerald-500/20 text-emerald-400' }
+        };
+
+        const assignmentStatusMap = {
+            ASSIGNED: { label: 'Atribuído', color: 'bg-indigo-500/20 text-indigo-400' },
+            ACCEPTED: { label: 'Aceito', color: 'bg-blue-500/20 text-blue-400' },
+            EN_ROUTE: { label: 'Em Rota', color: 'bg-purple-500/20 text-purple-400' },
+            ARRIVED: { label: 'No Local', color: 'bg-amber-500/20 text-amber-400' },
+            COMPLETED: { label: 'Concluído', color: 'bg-emerald-500/20 text-emerald-400' },
+            CANCELLED: { label: 'Cancelado', color: 'bg-rose-500/20 text-rose-400' }
+        };
+
+        const vehicleTypeIcons = {
+            AMBULANCE: '🚑', FIRE_TRUCK: '🚒', POLICE_CAR: '🚓', CART: '🚐', TOW_TRUCK: '🚛'
+        };
+        const incidentTypeColors = {
+            ACCIDENT: 'text-amber-400', FIRE: 'text-rose-400', MEDICAL: 'text-blue-400'
+        };
+
+        async function loadDashboard() {
             try {
-                // Let's decode token payload to get user email
-                const base64Url = appState.token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(c => {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                
-                const payload = JSON.parse(jsonPayload);
-                appState.user = payload;
-                document.getElementById('user-email').innerText = payload.email;
-                document.getElementById('auth-modal').classList.add('hidden');
-                
-                // Load data
-                refreshData();
-            } catch (err) {
-                console.error("Invalid token format", err);
-                appState.token = null;
-                localStorage.removeItem('token');
-                document.getElementById('auth-modal').classList.remove('hidden');
-            }
-        }
-
-        // Switch Tabs
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.menu-tab-btn').forEach(el => {
-                el.classList.remove('active', 'bg-brand-accent/10', 'border', 'border-brand-accent/25', 'text-white');
-                el.classList.add('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/30');
-            });
-
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`btn-tab-${tabName}`);
-            activeBtn.classList.add('active', 'bg-brand-accent/10', 'border', 'border-brand-accent/25', 'text-white');
-            activeBtn.classList.remove('text-slate-400', 'hover:text-white', 'hover:bg-slate-800/30');
-            
-            // Invalidate Map size to redraw correctly if switching to map tab
-            if (tabName === 'dashboard' && map) {
-                setTimeout(() => map.invalidateSize(), 100);
-            }
-        }
-
-        // Fetch All Data
-        async function refreshData() {
-            try {
-                const [incidents, vehicles, assignments] = await Promise.all([
-                    fetchAPI('/incidents'),
-                    fetchAPI('/vehicules'),
-                    fetchAPI('/dispatch')
+                const [vehiclesRes, incidentsRes, dispatchesRes] = await Promise.all([
+                    fetch(`${API}/vehicules`, { headers: authHeaders() }),
+                    fetch(`${API}/incidents`, { headers: authHeaders() }),
+                    fetch(`${API}/dispatch`, { headers: authHeaders() })
                 ]);
 
-                appState.incidents = incidents;
-                appState.vehicles = vehicles;
-                appState.assignments = assignments;
+                const vehicles = vehiclesRes.ok ? await vehiclesRes.json() : [];
+                const incidents = incidentsRes.ok ? await incidentsRes.json() : [];
+                const dispatches = dispatchesRes.ok ? await dispatchesRes.json() : [];
 
-                // Sync WebSocket rooms
-                if (socket && socket.connected) {
-                    appState.vehicles.forEach(v => {
-                        socket.emit('vehicule_join', { vehiculeId: v.id });
-                    });
-                }
+                // Stats
+                document.getElementById('stat-vehicles').textContent = vehicles.length;
+                document.getElementById('stat-available').textContent = vehicles.filter(v => v.status === 'AVAILABLE').length;
+                document.getElementById('stat-incidents').textContent = incidents.filter(i => i.status !== 'RESOLVED').length;
+                document.getElementById('stat-dispatches').textContent = dispatches.filter(d => !['COMPLETED', 'CANCELLED'].includes(d.status)).length;
 
-                updateDashboardView();
-            } catch (err) {
-                console.error("Error refreshing data", err);
-            }
-        }
-
-        // Update HTML and Map markers
-        function updateDashboardView() {
-            // Badges
-            document.getElementById('incidents-badge').innerText = appState.incidents.filter(i => i.status !== 'RESOLVED').length;
-            document.getElementById('vehicles-badge').innerText = appState.vehicles.length;
-            
-            const activeDispatches = appState.assignments.filter(a => ['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED'].includes(a.status));
-            document.getElementById('simulator-badge').innerText = activeDispatches.length;
-
-            // Stats
-            document.getElementById('stats-resolved').innerText = appState.incidents.filter(i => i.status === 'RESOLVED').length;
-            document.getElementById('stats-active').innerText = appState.incidents.filter(i => i.status === 'IN_PROGRESS').length;
-
-            // Render elements
-            renderIncidents();
-            renderVehicles();
-            renderDispatchFeed();
-            renderSimulatorPanel();
-            
-            // Map markers sync
-            syncMapMarkers();
-        }
-
-        // Render Incidents Tab
-        function renderIncidents() {
-            const grid = document.getElementById('incidents-grid');
-            grid.innerHTML = '';
-
-            if (appState.incidents.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-slate-500 bg-brand-card rounded-2xl border border-brand-border">
-                        <i class="fa-solid fa-triangle-exclamation text-4xl mb-3 text-slate-600"></i>
-                        <p class="text-sm">Nenhuma ocorrência registrada no sistema.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Order by Priority DESC, status PENDING/IN_PROGRESS first
-            const ordered = [...appState.incidents].sort((a, b) => {
-                if (a.status === 'RESOLVED' && b.status !== 'RESOLVED') return 1;
-                if (a.status !== 'RESOLVED' && b.status === 'RESOLVED') return -1;
-                return b.priority - a.priority;
-            });
-
-            ordered.forEach(inc => {
-                let badgeClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-                let statusLabel = 'Pendente';
-                if (inc.status === 'IN_PROGRESS') {
-                    badgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-                    statusLabel = 'Em Curso';
-                } else if (inc.status === 'RESOLVED') {
-                    badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                    statusLabel = 'Resolvido';
-                }
-
-                let icon = 'fa-circle-exclamation text-rose-500';
-                if (inc.type === 'FIRE') icon = 'fa-fire text-amber-500';
-                else if (inc.type === 'MEDICAL') icon = 'fa-truck-medical text-sky-500';
-
-                // Find active assignment
-                const activeAss = appState.assignments.find(a => a.incidentId === inc.id && a.status !== 'COMPLETED' && a.status !== 'CANCELLED');
-
-                let actionButton = '';
-                if (inc.status === 'PENDING') {
-                    actionButton = `
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="openDispatchModal('${inc.id}', '${inc.description}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-1">
-                                <i class="fa-solid fa-truck-medical"></i> Despachar
-                            </button>
-                            <button onclick="autoDispatch('${inc.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 rounded-lg border border-brand-border transition flex items-center justify-center gap-1">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto
-                            </button>
-                        </div>
-                    `;
-                } else if (inc.status === 'IN_PROGRESS' && activeAss) {
-                    actionButton = `
-                        <div class="mt-4 bg-brand-dark/50 p-2.5 rounded-lg border border-brand-border/60 text-xs flex justify-between items-center">
-                            <span class="text-slate-400">Atendido por:</span>
-                            <span class="font-semibold text-brand-accent flex items-center gap-1">
-                                <i class="fa-solid fa-truck-shield"></i> ${activeAss.vehicule?.name || 'Viatura'}
-                            </span>
-                        </div>
-                    `;
-                }
-
-                const card = document.createElement('div');
-                card.className = `bg-brand-card border ${inc.status === 'PENDING' ? 'border-rose-500/30' : 'border-brand-border'} rounded-2xl p-5 shadow-lg flex flex-col justify-between`;
-                card.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between gap-2 mb-3">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${statusLabel}</span>
-                            <span class="text-[10px] bg-brand-dark px-2.5 py-1 rounded text-slate-400 border border-brand-border flex items-center gap-1">
-                                <i class="fa-solid fa-shield"></i> Prioridade ${inc.priority}
-                            </span>
-                        </div>
-
-                        <h4 class="font-bold text-white text-base flex items-center gap-2 mb-2">
-                            <i class="fa-solid ${icon}"></i>
-                            ${inc.type === 'FIRE' ? 'Incêndio' : inc.type === 'MEDICAL' ? 'Emergência Médica' : 'Acidente de Trânsito'}
-                        </h4>
-                        
-                        <p class="text-xs text-slate-400 mb-3 line-clamp-3">${inc.description}</p>
-                        
-                        <div class="space-y-1 bg-brand-dark/40 p-2.5 rounded-lg border border-brand-border/40 text-xs">
-                            <div class="flex justify-between"><span class="text-slate-400">Local:</span> <span class="text-slate-300 font-medium">${inc.location}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Coordenadas:</span> <span class="text-slate-400">${inc.latitude.toFixed(5)}, ${inc.longitude.toFixed(5)}</span></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-t border-brand-border/40 flex flex-col justify-end">
-                        ${actionButton}
-                        <button onclick="deleteIncident('${inc.id}')" class="text-xs text-rose-500/60 hover:text-rose-500 transition mt-2 self-end flex items-center gap-1">
-                            <i class="fa-solid fa-trash-can"></i> Excluir
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        // Render Vehicles Tab
-        function renderVehicles() {
-            const grid = document.getElementById('vehicles-grid');
-            grid.innerHTML = '';
-
-            if (appState.vehicles.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-slate-500 bg-brand-card rounded-2xl border border-brand-border">
-                        <i class="fa-solid fa-truck-shield text-4xl mb-3 text-slate-600"></i>
-                        <p class="text-sm">Nenhuma viatura cadastrada.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            appState.vehicles.forEach(veh => {
-                let badgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                let statusLabel = 'Disponível';
-                
-                if (veh.status === 'DISPATCHED') {
-                    badgeClass = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 animate-pulse';
-                    statusLabel = 'Despachada';
-                } else if (veh.status === 'EN_ROUTE') {
-                    badgeClass = 'bg-sky-500/10 text-sky-400 border-sky-500/20 animate-pulse';
-                    statusLabel = 'Em Rota';
-                } else if (veh.status === 'AT_INCIDENT') {
-                    badgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-                    statusLabel = 'No Local';
-                } else if (veh.status === 'BUSY') {
-                    badgeClass = 'bg-red-500/10 text-red-400 border-red-500/20';
-                    statusLabel = 'Ocupada';
-                } else if (veh.status === 'OFFLINE') {
-                    badgeClass = 'bg-slate-800 text-slate-400 border-slate-700/50';
-                    statusLabel = 'Offline';
-                }
-
-                let icon = 'fa-ambulance text-emerald-500';
-                if (veh.type === 'FIRE_TRUCK') icon = 'fa-fire-extinguisher text-amber-500';
-                else if (veh.type === 'POLICE_CAR') icon = 'fa-car-side text-blue-500';
-                else if (veh.type === 'TOW_TRUCK') icon = 'fa-truck-pickup text-slate-400';
-
-                const card = document.createElement('div');
-                card.className = 'bg-brand-card border border-brand-border rounded-2xl p-5 shadow-lg flex flex-col justify-between';
-                card.innerHTML = `
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">${statusLabel}</span>
-                            <span class="text-xs font-mono bg-brand-dark px-2 py-1 rounded text-slate-400 border border-brand-border">${veh.plate}</span>
-                        </div>
-
-                        <h4 class="font-bold text-white text-base flex items-center gap-2 mb-2">
-                            <i class="fa-solid ${icon}"></i>
-                            ${veh.name}
-                        </h4>
-                        
-                        <div class="space-y-1 bg-brand-dark/40 p-2.5 rounded-lg border border-brand-border/40 text-xs">
-                            <div class="flex justify-between"><span class="text-slate-400">Tipo:</span> <span class="text-slate-300 font-medium">${veh.type}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Lat:</span> <span class="text-slate-300 font-mono">${veh.latitude.toFixed(5)}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Lng:</span> <span class="text-slate-300 font-mono">${veh.longitude.toFixed(5)}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-400">Visto por último:</span> <span class="text-slate-300">${veh.lastSeen ? new Date(veh.lastSeen).toLocaleTimeString() : 'Nunca'}</span></div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 pt-3 border-t border-brand-border/40 flex items-center justify-between text-xs">
-                        <span class="flex items-center gap-1.5 ${veh.trackingEnable ? 'text-emerald-400' : 'text-slate-500'}">
-                            <i class="fa-solid fa-location-crosshairs ${veh.trackingEnable ? 'animate-spin' : ''}"></i>
-                            ${veh.trackingEnable ? 'GPS Ativo' : 'GPS Inativo'}
-                        </span>
-                        <button onclick="deleteVehicle('${veh.id}')" class="text-rose-500/60 hover:text-rose-500 transition flex items-center gap-1">
-                            <i class="fa-solid fa-trash-can"></i> Excluir
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        // Render Dispatches Active Feed
-        function renderDispatchFeed() {
-            const feed = document.getElementById('dispatch-feed-list');
-            feed.innerHTML = '';
-
-            const active = appState.assignments.filter(a => ['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED'].includes(a.status));
-
-            if (active.length === 0) {
-                feed.innerHTML = `
-                    <div class="text-center py-8 text-slate-500">
-                        <i class="fa-solid fa-inbox text-2xl mb-2 block"></i>
-                        Sem despachos ativos no momento.
-                    </div>
-                `;
-                return;
-            }
-
-            active.forEach(ass => {
-                let badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-                let icon = 'fa-truck-medical text-rose-500';
-                let statusTxt = 'Pendente';
-
-                if (ass.status === 'ACCEPTED') {
-                    badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-                    statusTxt = 'Aceito';
-                } else if (ass.status === 'EN_ROUTE') {
-                    badgeColor = 'bg-sky-500/10 text-sky-400 border-sky-500/20';
-                    statusTxt = 'Em Rota';
-                } else if (ass.status === 'ARRIVED') {
-                    badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-                    statusTxt = 'No Local';
-                }
-
-                const item = document.createElement('div');
-                item.className = 'bg-brand-dark/40 border border-brand-border rounded-xl p-3.5 space-y-2 hover:border-brand-accent/50 transition cursor-pointer';
-                item.onclick = () => {
-                    // Zoom to the incident and vehicle
-                    if (ass.incident && map) {
-                        map.setView([ass.incident.latitude, ass.incident.longitude], 15);
-                    }
-                };
-                
-                item.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${badgeColor}">${statusTxt}</span>
-                        <span class="text-[9px] text-slate-400">${new Date(ass.assignedAt).toLocaleTimeString()}</span>
-                    </div>
-
-                    <div class="space-y-1">
-                        <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
-                            <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
-                            ${ass.incident?.description || 'Ocorrência'}
-                        </h4>
-                        <div class="flex justify-between items-center text-[11px] text-slate-400">
-                            <span>Viatura:</span>
-                            <span class="font-semibold text-indigo-400">${ass.vehicule?.name || 'Viatura'}</span>
-                        </div>
-                        <div class="flex justify-between items-center text-[11px] text-slate-400">
-                            <span>Local:</span>
-                            <span class="text-slate-300 font-medium truncate max-w-[160px]">${ass.incident?.location || 'Não informado'}</span>
-                        </div>
-                    </div>
-                `;
-                feed.appendChild(item);
-            });
-        }
-
-        // Render Field Simulator Panel
-        function renderSimulatorPanel() {
-            const list = document.getElementById('simulator-active-list');
-            list.innerHTML = '';
-
-            const active = appState.assignments.filter(a => ['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED'].includes(a.status));
-
-            if (active.length === 0) {
-                list.innerHTML = `
-                    <div class="text-center py-12 text-slate-500 bg-brand-card rounded-2xl border border-brand-border">
-                        <i class="fa-solid fa-walkie-talkie text-5xl mb-3 text-slate-600 animate-pulse"></i>
-                        <p class="text-sm">Nenhum chamado de emergência em andamento para simulação.</p>
-                        <p class="text-xs text-slate-400 mt-1">Crie uma ocorrência e faça o despacho de uma viatura.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            active.forEach(ass => {
-                let actionBtn = '';
-                let statusDesc = '';
-                
-                if (ass.status === 'ASSIGNED') {
-                    statusDesc = 'Viatura foi despachada da base. O motorista precisa aceitar o chamado pelo rádio.';
-                    actionBtn = `
-                        <button onclick="transitionDispatch('${ass.id}', '${ass.vehiculeId}', '${ass.incidentId}', 'accept')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-check"></i> Aceitar Chamado
-                        </button>
-                    `;
-                } else if (ass.status === 'ACCEPTED') {
-                    statusDesc = 'Chamado aceito pelo motorista. Viatura está pronta para se deslocar.';
-                    actionBtn = `
-                        <button onclick="transitionDispatch('${ass.id}', '${ass.vehiculeId}', '${ass.incidentId}', 'start-route')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-route"></i> Iniciar Deslocamento (Giroflex Ligado)
-                        </button>
-                    `;
-                } else if (ass.status === 'EN_ROUTE') {
-                    statusDesc = 'Viatura em trânsito com giroflex e sirenes ligados. A caminho do local da ocorrência.';
-                    actionBtn = `
-                        <div class="flex gap-2">
-                            <button onclick="transitionDispatch('${ass.id}', '${ass.vehiculeId}', '${ass.incidentId}', 'arrived')" class="bg-amber-500 hover:bg-amber-600 text-brand-dark font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-bullseye"></i> Confirmar Chegada no Local
-                            </button>
-                            <button onclick="simulateTelemetryMove('${ass.id}', '${ass.vehiculeId}', ${ass.incident.latitude}, ${ass.incident.longitude})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition border border-brand-border">
-                                <i class="fa-solid fa-play"></i> Simular GPS Andando
-                            </button>
-                        </div>
-                    `;
-                } else if (ass.status === 'ARRIVED') {
-                    statusDesc = 'Viatura chegou no local da ocorrência e está prestando atendimento à vítima / extinguindo chamas.';
-                    actionBtn = `
-                        <button onclick="transitionDispatch('${ass.id}', '${ass.vehiculeId}', '${ass.incidentId}', 'completed')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-circle-check"></i> Atendimento Concluído (Viatura Liberada)
-                        </button>
-                    `;
-                }
-
-                const item = document.createElement('div');
-                item.className = 'bg-brand-card border border-brand-border rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl';
-                item.innerHTML = `
-                    <div class="space-y-2 flex-1">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-400 font-mono border border-brand-border">ID: ${ass.id.slice(0,8)}</span>
-                            <span class="text-xs bg-rose-950/40 border border-rose-500/20 text-rose-400 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <i class="fa-solid fa-truck-medical"></i> ${ass.vehicule?.name || 'Viatura'}
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-white text-base">Chamado de: <span class="text-rose-400">${ass.incident?.description || 'Ocorrência'}</span></h4>
-                        <p class="text-xs text-slate-400">${statusDesc}</p>
-                        <div class="text-[11px] text-slate-500">
-                            <strong>Local:</strong> ${ass.incident?.location || 'Não informado'} | 
-                            <strong>Viatura atual:</strong> ${ass.vehicule?.latitude.toFixed(5)}, ${ass.vehicule?.longitude.toFixed(5)}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0 self-end md:self-center">
-                        ${actionBtn}
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
-
-        // Simula a movimentação do veículo passo a passo no mapa até a ocorrência
-        function simulateTelemetryMove(assignmentId, vehicleId, targetLat, targetLng) {
-            const veh = appState.vehicles.find(v => v.id === vehicleId);
-            if (!veh) return;
-
-            // If there's already a simulation running for this vehicle, stop it
-            if (simulatedRoutes[vehicleId]) {
-                clearInterval(simulatedRoutes[vehicleId]);
-            }
-
-            let currentLat = veh.latitude;
-            let currentLng = veh.longitude;
-            const steps = 15;
-            let step = 0;
-
-            const latDelta = (targetLat - currentLat) / steps;
-            const lngDelta = (targetLng - currentLng) / steps;
-
-            console.log(`Starting telemetry simulation for ${veh.name}`);
-            
-            simulatedRoutes[vehicleId] = setInterval(async () => {
-                if (step >= steps) {
-                    clearInterval(simulatedRoutes[vehicleId]);
-                    delete simulatedRoutes[vehicleId];
-                    // Update final location update
-                    await sendSimulatedTelemetry(vehicleId, targetLat, targetLng, 0);
-                    return;
-                }
-
-                currentLat += latDelta;
-                currentLng += lngDelta;
-                step++;
-
-                // Simulate some speed: 50 km/h is ~13.8 m/s
-                const speed = 13.8 + (Math.random() - 0.5) * 4;
-                await sendSimulatedTelemetry(vehicleId, currentLat, currentLng, speed);
-            }, 1000);
-        }
-
-        // Development-only route simulator. Real devices emit location.update from tracking-client.html.
-        async function sendSimulatedTelemetry(vehicleId, latitude, longitude, speed) {
-            if (!socket?.connected) {
-                console.error("Socket indisponível para simular telemetria");
-                return;
-            }
-
-            socket.emit('location.simulate', {
-                eventId: crypto.randomUUID(),
-                sequence: Date.now(),
-                vehiculeId: vehicleId,
-                latitude: latitude,
-                longitude: longitude,
-                speed: speed,
-                accuracy: 5,
-                heading: Math.floor(Math.random() * 360),
-                capturedAt: new Date().toISOString()
-            });
-        }
-
-        // Synchronize all Leaflet Map Markers
-        function syncMapMarkers() {
-            if (!map) return;
-
-            // Clear old markers
-            Object.keys(mapMarkers.incidents).forEach(id => {
-                map.removeLayer(mapMarkers.incidents[id]);
-            });
-            Object.keys(mapMarkers.vehicles).forEach(id => {
-                map.removeLayer(mapMarkers.vehicles[id]);
-            });
-            mapMarkers.incidents = {};
-            mapMarkers.vehicles = {};
-
-            // Render Incidents
-            appState.incidents.forEach(inc => {
-                if (inc.status === 'RESOLVED') return; // Don't show resolved on active map
-
-                let color = '#ef4444'; // Red for PENDING
-                if (inc.status === 'IN_PROGRESS') color = '#f59e0b'; // Orange
-
-                const marker = L.circleMarker([inc.latitude, inc.longitude], {
-                    radius: 12,
-                    fillColor: color,
-                    color: '#ffffff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(map);
-
-                const iconHTML = inc.type === 'FIRE' ? '🔥' : inc.type === 'MEDICAL' ? '🏥' : '🚗';
-                marker.bindPopup(`
-                    <div class="text-xs">
-                        <div class="font-bold text-white mb-1 flex items-center gap-1">
-                            <span>${iconHTML}</span> ${inc.type === 'FIRE' ? 'Incêndio' : inc.type === 'MEDICAL' ? 'Emergência Médica' : 'Acidente'}
-                        </div>
-                        <p class="text-slate-300 font-semibold mb-1">${inc.location}</p>
-                        <p class="text-slate-400 mb-2">${inc.description}</p>
-                        <div class="flex gap-2">
-                            ${inc.status === 'PENDING' ? `
-                                <button onclick="autoDispatch('${inc.id}')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2 py-1 rounded text-[10px]">Autodespacho</button>
-                                <button onclick="openDispatchModal('${inc.id}', '${inc.description}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2 py-1 rounded text-[10px]">Despacho Manual</button>
-                            ` : '<span class="text-amber-400 font-semibold">Atendimento em curso...</span>'}
-                        </div>
-                    </div>
-                `);
-
-                mapMarkers.incidents[inc.id] = marker;
-            });
-
-            // Render Vehicles
-            appState.vehicles.forEach(veh => {
-                if (veh.status === 'OFFLINE') return; // Hide offline vehicles
-
-                let color = '#10b981'; // Green for AVAILABLE
-                if (['DISPATCHED', 'EN_ROUTE', 'AT_INCIDENT'].includes(veh.status)) {
-                    color = '#4f46e5'; // Indigo/Purple for busy/en-route
-                }
-
-                // Custom Icon using FontAwesome inside Leaflet DivIcon
-                const typeIcon = veh.type === 'FIRE_TRUCK' ? 'fa-fire-extinguisher' : veh.type === 'POLICE_CAR' ? 'fa-car-side' : 'fa-ambulance';
-                const markerIcon = L.divIcon({
-                    html: `<div class="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center shadow-lg" style="background-color: ${color}">
-                        <i class="fa-solid ${typeIcon} text-white text-xs"></i>
-                    </div>`,
-                    className: '',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
-                });
-
-                const marker = L.marker([veh.latitude, veh.longitude], { icon: markerIcon }).addTo(map);
-                marker.bindPopup(createVehiclePopupContent(veh));
-
-                mapMarkers.vehicles[veh.id] = marker;
-            });
-
-            // Draw routing lines if any vehicle is en route or at incident
-            appState.assignments.forEach(ass => {
-                if (['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED'].includes(ass.status)) {
-                    const veh = appState.vehicles.find(v => v.id === ass.vehiculeId);
-                    const inc = appState.incidents.find(i => i.id === ass.incidentId);
-
-                    if (veh && inc) {
-                        // Draw a dashed orange line between them
-                        const polyline = L.polyline([
-                            [veh.latitude, veh.longitude],
-                            [inc.latitude, inc.longitude]
-                        ], {
-                            color: '#f59e0b',
-                            weight: 2.5,
-                            opacity: 0.7,
-                            dashArray: '5, 10'
-                        }).addTo(map);
-                        
-                        // Link the line to incidents layer to clear it properly on next sync
-                        mapMarkers.incidents[`line_${ass.id}`] = polyline;
-                    }
-                }
-            });
-        }
-
-        function createVehiclePopupContent(veh) {
-            return `
-                <div class="text-xs">
-                    <p class="font-bold text-white mb-1 flex items-center gap-1">
-                        <i class="fa-solid fa-truck-shield"></i> ${veh.name}
-                    </p>
-                    <p class="text-slate-300">Status: <strong class="text-indigo-400">${veh.status}</strong></p>
-                    <p class="text-slate-400 font-mono text-[10px]">Pos: ${veh.latitude.toFixed(5)}, ${veh.longitude.toFixed(5)}</p>
+                // Recent incidents
+                const riEl = document.getElementById('recent-incidents');
+                if (!incidents.length) { riEl.innerHTML = '<div class="text-gray-500 text-sm text-center py-6">Nenhum incidente registrado</div>'; }
+                else {
+                    riEl.innerHTML = incidents.slice(0, 5).map(i => {
+                        const s = incidentStatusMap[i.status] || { label: i.status, color: 'bg-gray-500/20 text-gray-400' };
+                        const tc = incidentTypeColors[i.type] || 'text-gray-400';
+                        return `<div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <span class="text-lg">${i.type === 'ACCIDENT' ? '💥' : i.type === 'FIRE' ? '🔥' : '🏥'}</span>
+                <div class="min-w-0">
+                  <div class="text-sm text-white font-medium truncate">${i.description || 'Sem descrição'}</div>
+                  <div class="text-xs text-gray-500 truncate">${i.location || '—'}</div>
                 </div>
-            `;
-        }
+              </div>
+              <span class="badge ${s.color} ml-2 flex-shrink-0">${s.label}</span>
+            </div>`;
+                    }).join('');
+                }
 
-        // API Call: Auto Dispatch
-        async function autoDispatch(incidentId) {
-            try {
-                await fetchAPI('/dispatch/auto', {
-                    method: 'POST',
-                    body: JSON.stringify({ incidentId })
-                });
-                refreshData();
-                showToast("Viatura Despachada", "A viatura mais próxima foi despachada automaticamente.");
-            } catch (err) {
-                alert(`Erro no despacho automático: ${err.message}`);
+                // Recent dispatches
+                const rdEl = document.getElementById('recent-dispatches');
+                if (!dispatches.length) { rdEl.innerHTML = '<div class="text-gray-500 text-sm text-center py-6">Nenhum despacho registrado</div>'; }
+                else {
+                    rdEl.innerHTML = dispatches.slice(0, 5).map(d => {
+                        const s = assignmentStatusMap[d.status] || { label: d.status, color: 'bg-gray-500/20 text-gray-400' };
+                        const vType = d.vehicle?.type || '';
+                        return `<div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <span class="text-lg">${vehicleTypeIcons[vType] || '🚨'}</span>
+                <div class="min-w-0">
+                  <div class="text-sm text-white font-medium truncate">${d.vehicle?.name || 'Viatura #' + d.vehicle?.id || '–'}</div>
+                  <div class="text-xs text-gray-500">Incidente #${d.incident?.id || '–'}</div>
+                </div>
+              </div>
+              <span class="badge ${s.color} ml-2 flex-shrink-0">${s.label}</span>
+            </div>`;
+                    }).join('');
+                }
+
+                // Vehicles grid
+                const vgEl = document.getElementById('vehicles-grid');
+                if (!vehicles.length) { vgEl.innerHTML = '<div class="col-span-3 text-gray-500 text-sm text-center py-6">Nenhuma viatura cadastrada</div>'; }
+                else {
+                    vgEl.innerHTML = vehicles.map(v => {
+                        const s = vehicleStatusMap[v.status] || { label: v.status, color: 'bg-gray-500/20 text-gray-400', dot: 'bg-gray-400' };
+                        return `<div class="flex items-center gap-3 bg-white/5 rounded-xl p-3">
+              <span class="text-2xl">${vehicleTypeIcons[v.type] || '🚨'}</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-white font-medium truncate">${v.name}</div>
+                <div class="text-xs text-gray-500">${v.plate}</div>
+              </div>
+              <span class="badge ${s.color}"><span class="status-dot ${s.dot}"></span>${s.label}</span>
+            </div>`;
+                    }).join('');
+                }
+
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        // Open Manual Dispatch Modal
-        async function openDispatchModal(incidentId, description) {
-            document.getElementById('disp-incident-desc').innerText = `Ocorrência: "${description}"`;
-            document.getElementById('dispatch-modal').classList.remove('hidden');
-            const list = document.getElementById('disp-vehicles-list');
-            list.innerHTML = `<div class="text-center py-4 text-slate-400"><i class="fa-solid fa-spinner animate-spin"></i> Calculando viaturas mais próximas...</div>`;
+        function refreshAll() { loadDashboard(); }
+        loadDashboard();
+        setInterval(loadDashboard, 15000);
 
+        // WebSocket — Socket.IO nativo, namespace /realtime
+        let stompClient = null;
+        function connectWS() {
             try {
-                // Fetch closest vehicles
-                const nearest = await fetchAPI(`/vehicules/nearest/${incidentId}`);
-                list.innerHTML = '';
-
-                if (nearest.length === 0) {
-                    list.innerHTML = `<div class="text-center py-4 text-rose-400"><i class="fa-solid fa-circle-xmark"></i> Nenhuma viatura disponível encontrada.</div>`;
+                if (!window.io) {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.socket.io/4.8.0/socket.io.min.js';
+                    s.onload = () => connectWS();
+                    document.head.appendChild(s);
                     return;
                 }
-
-                nearest.forEach(v => {
-                    const distanceKm = v.distance.toFixed(2);
-                    list.innerHTML += `
-                        <div class="bg-brand-dark border border-brand-border p-3 rounded-xl flex items-center justify-between hover:border-brand-accent/50 transition">
-                            <div>
-                                <h5 class="text-sm font-bold text-white">${v.name}</h5>
-                                <p class="text-xs text-slate-400">Placa: ${v.plate} | Distância: <strong class="text-emerald-400">${distanceKm} km</strong></p>
-                            </div>
-                            <button onclick="confirmManualDispatch('${incidentId}', '${v.id}')" class="bg-brand-accent hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                                Selecionar
-                            </button>
-                        </div>
-                    `;
-                });
-            } catch (err) {
-                list.innerHTML = `<div class="text-center py-4 text-rose-500">Erro: ${err.message}</div>`;
-            }
-        }
-
-        function closeDispatchModal() {
-            document.getElementById('dispatch-modal').classList.add('hidden');
-        }
-
-        // API Call: Confirm Manual Dispatch
-        async function confirmManualDispatch(incidentId, vehiculeId) {
-            try {
-                await fetchAPI('/dispatch', {
-                    method: 'POST',
-                    body: JSON.stringify({ incidentId, vehiculeId })
-                });
-                closeDispatchModal();
-                refreshData();
-                showToast("Despacho Realizado", "A viatura selecionada foi notificada.");
-            } catch (err) {
-                alert(`Erro ao despachar: ${err.message}`);
-            }
-        }
-
-        // Simulator dispatch status transitions
-        async function transitionDispatch(assignmentId, vehiculeId, incidentId, step) {
-            try {
-                await fetchAPI(`/dispatch/${step}`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        status: step === 'accept' ? 'ACCEPTED' : step === 'start-route' ? 'EN_ROUTE' : step === 'arrived' ? 'ARRIVED' : 'COMPLETED',
-                        incidentId,
-                        assignmentId,
-                        vehiculeId
-                    })
-                });
-
-                showToast(`Status do Despacho Atualizado`, `Transição para a etapa: ${step.toUpperCase()}`);
-                refreshData();
-            } catch (err) {
-                alert(`Erro na transição: ${err.message}`);
-            }
-        }
-
-        // Delete Incident
-        async function deleteIncident(id) {
-            if (!confirm("Tem certeza que deseja excluir esta ocorrência?")) return;
-            try {
-                await fetchAPI(`/incidents/${id}`, { method: 'DELETE' });
-                refreshData();
-            } catch (err) {
-                alert(`Erro ao excluir: ${err.message}`);
-            }
-        }
-
-        // Delete Vehicle
-        async function deleteVehicle(id) {
-            if (!confirm("Tem certeza que deseja excluir esta viatura da frota?")) return;
-            try {
-                await fetchAPI(`/vehicules/${id}`, { method: 'DELETE' });
-                refreshData();
-            } catch (err) {
-                alert(`Erro ao excluir viatura: ${err.message}`);
-            }
-        }
-
-        // Modals Management
-        function openNewIncidentModal() {
-            document.getElementById('incident-modal').classList.remove('hidden');
-            // pre-populate coordinates if selected on map
-            if (!document.getElementById('inc-lat').value) {
-                document.getElementById('inc-lat').value = '-9.4142';
-                document.getElementById('inc-lng').value = '-40.5031';
-            }
-        }
-        function closeIncidentModal() {
-            document.getElementById('incident-modal').classList.add('hidden');
-        }
-
-        function openNewVehicleModal() {
-            document.getElementById('vehicle-modal').classList.remove('hidden');
-            if (!document.getElementById('veh-lat').value) {
-                document.getElementById('veh-lat').value = '-9.4142';
-                document.getElementById('veh-lng').value = '-40.5031';
-            }
-        }
-        function closeVehicleModal() {
-            document.getElementById('vehicle-modal').classList.add('hidden');
-        }
-
-        // Handle Create Incident Submit
-        async function handleCreateIncident(e) {
-            e.preventDefault();
-            const data = {
-                type: document.getElementById('inc-type').value,
-                location: document.getElementById('inc-location').value,
-                description: document.getElementById('inc-description').value,
-                status: 'PENDING',
-                latitude: parseFloat(document.getElementById('inc-lat').value),
-                longitude: parseFloat(document.getElementById('inc-lng').value),
-                priority: parseInt(document.getElementById('inc-priority').value)
-            };
-
-            try {
-                await fetchAPI('/incidents', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-                closeIncidentModal();
-                refreshData();
-                showToast("Ocorrência Registrada", "Ocorrência pendente criada com sucesso.");
-            } catch (err) {
-                alert(`Erro ao registrar ocorrência: ${err.message}`);
-            }
-        }
-
-        // Handle Create Vehicle Submit
-        async function handleCreateVehicle(e) {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById('veh-name').value,
-                plate: document.getElementById('veh-plate').value,
-                type: document.getElementById('veh-type').value,
-                status: document.getElementById('veh-status').value,
-                latitude: parseFloat(document.getElementById('veh-lat').value),
-                longitude: parseFloat(document.getElementById('veh-lng').value)
-            };
-
-            try {
-                await fetchAPI('/vehicules', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-                closeVehicleModal();
-                refreshData();
-                showToast("Viatura Cadastrada", "A viatura foi adicionada à frota com sucesso.");
-            } catch (err) {
-                alert(`Erro ao cadastrar viatura: ${err.message}`);
-            }
-        }
-
-        // Auth Tabs
-        let activeAuthTab = 'login';
-        function setAuthTab(tab) {
-            activeAuthTab = tab;
-            const tabLogin = document.getElementById('auth-tab-login');
-            const tabRegister = document.getElementById('auth-tab-register');
-            const nameField = document.getElementById('auth-field-name');
-            const phoneField = document.getElementById('auth-field-phone');
-            const roleField = document.getElementById('auth-field-role');
-            
-            if (tab === 'login') {
-                tabLogin.className = "flex-1 py-2 text-center text-sm font-semibold border-b-2 border-brand-accent text-white";
-                tabRegister.className = "flex-1 py-2 text-center text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white";
-                nameField.classList.add('hidden');
-                phoneField.classList.add('hidden');
-                roleField.classList.add('hidden');
-            } else {
-                tabRegister.className = "flex-1 py-2 text-center text-sm font-semibold border-b-2 border-brand-accent text-white";
-                tabLogin.className = "flex-1 py-2 text-center text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white";
-                nameField.classList.remove('hidden');
-                phoneField.classList.remove('hidden');
-                roleField.classList.remove('hidden');
-            }
-        }
-
-        // Handle Auth Form Submission
-        async function handleAuthSubmit(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            
-            try {
-                if (activeAuthTab === 'login') {
-                    // Sign In
-                    const res = await fetch(`${API_URL}/auth/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
+                const wsToken = localStorage.getItem('token');
+                stompClient = io(`${API}/realtime`, { auth: { token: wsToken }, transports: ['websocket'] });
+                stompClient.on('connect', () => {
+                    document.getElementById('ws-dot').className = 'ws-indicator connected';
+                    document.getElementById('ws-status').textContent = 'WebSocket: conectado';
+                    stompClient.on('vehicule.location.updated', data => {
+                        console.log('WS location update:', data);
                     });
-                    
-                    if (!res.ok) throw new Error("Credenciais inválidas");
-                    
-                    const data = await res.json();
-                    appState.token = data.access_token;
-                    localStorage.setItem('token', data.access_token);
-                    
-                } else {
-                    // Sign Up
-                    const name = document.getElementById('auth-name').value;
-                    const phone = document.getElementById('auth-phone').value;
-                    const role = document.getElementById('auth-role').value;
-                    
-                    const registerRes = await fetch(`${API_URL}/auth/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, email, password, phone, role })
+                    stompClient.on('dispatch_assigned', data => {
+                        console.log('Dispatch assigned:', data);
+                        loadDashboard();
                     });
-                    
-                    if (!registerRes.ok) {
-                        const errData = await registerRes.json();
-                        throw new Error(errData.message || "Erro no registro");
-                    }
-                    
-                    // After register, auto log in
-                    const loginRes = await fetch(`${API_URL}/auth/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
-                    
-                    const loginData = await loginRes.json();
-                    appState.token = loginData.access_token;
-                    localStorage.setItem('token', loginData.access_token);
-                }
-
-                // Check authorization status
-                checkAuth();
-                setupSocketConnection();
-                
-            } catch (err) {
-                alert(`Erro de autenticação: ${err.message}`);
-            }
+                });
+                stompClient.on('disconnect', () => {
+                    document.getElementById('ws-dot').className = 'ws-indicator disconnected';
+                    document.getElementById('ws-status').textContent = 'WebSocket: desconectado';
+                });
+                stompClient.on('requires_auth', (msg) => {
+                    console.warn('Auth WS:', msg);
+                });
+            } catch (e) { }
         }
-
-        // Logout
-        function logout() {
-            appState.token = null;
-            appState.user = null;
-            localStorage.removeItem('token');
-            if (socket) socket.disconnect();
-            document.getElementById('auth-modal').classList.remove('hidden');
-        }
+        connectWS();
     </script>
 </body>
+
 </html>

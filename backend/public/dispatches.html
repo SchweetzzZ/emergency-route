@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EmergencyTrack – Despachos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{font-family:'Inter',sans-serif}
+    body{background:#0a0e1a;color:#e2e8f0}
+    .sidebar{background:linear-gradient(180deg,#0f172a 0%,#1a1f35 100%);border-right:1px solid rgba(255,255,255,0.06)}
+    .nav-item{transition:all 0.2s;border-radius:10px}
+    .nav-item:hover{background:rgba(99,102,241,0.15);color:#a5b4fc}
+    .nav-item.active{background:rgba(99,102,241,0.25);color:#818cf8;border-left:3px solid #6366f1}
+    .card{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:16px}
+    .input-field{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);transition:all 0.3s}
+    .input-field:focus{background:rgba(255,255,255,0.1);border-color:#6366f1;outline:none;box-shadow:0 0 0 3px rgba(99,102,241,0.2)}
+    .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);transition:all 0.3s}
+    .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+    .modal-bg{background:rgba(0,0,0,0.7);backdrop-filter:blur(8px)}
+    .modal-card{background:#1a1f35;border:1px solid rgba(255,255,255,0.1)}
+    .badge{display:inline-flex;align-items:center;padding:3px 12px;border-radius:999px;font-size:11px;font-weight:600}
+    .top-header{background:rgba(10,14,26,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+    select option{background:#1a1f35}
+    .step{display:flex;align-items:center;gap:8px}
+    .step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+    .step-line{height:2px;flex:1}
+  </style>
+</head>
+<body class="min-h-screen flex overflow-hidden">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-64 min-h-screen flex flex-col fixed left-0 top-0 h-full z-30">
+  <div class="flex items-center gap-3 px-6 py-5 border-b border-white/5">
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    </div>
+    <div><div class="text-white font-bold text-sm">EmergencyTrack</div><div class="text-gray-500 text-xs">v2.0 · Operacional</div></div>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Principal</div>
+    <a href="dispatch-dashboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</a>
+    <div class="text-gray-600 text-xs font-semibold uppercase tracking-wider px-3 mb-2 mt-4">Operações</div>
+    <a href="vehicles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Viaturas</a>
+    <a href="incidents.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Incidentes</a>
+    <a href="dispatches.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm font-medium"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Despachos</a>
+    <a href="tracking.html" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Rastreamento</a>
+  </nav>
+  <div class="px-4 py-4 border-t border-white/5">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">OP</div>
+      <div class="flex-1"><div class="text-sm font-medium text-white">Operador</div><div class="text-xs text-gray-500">Logado</div></div>
+      <button onclick="logout()" class="text-gray-500 hover:text-red-400 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+  <header class="top-header sticky top-0 z-20 flex items-center justify-between px-8 py-4">
+    <div>
+      <h1 class="text-xl font-bold text-white">Despachos</h1>
+      <p class="text-gray-500 text-xs mt-0.5">Gerencie o despacho de viaturas para incidentes</p>
+    </div>
+    <div class="flex gap-3">
+      <button onclick="openAutoModal()" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-purple-400 text-sm font-semibold border border-purple-500/40 hover:bg-purple-500/10 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Auto-Despacho
+      </button>
+      <button onclick="openModal()" class="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Despacho
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 p-8">
+    <!-- GPS Transmission Banner -->
+    <div id="tracking-banner" class="hidden mb-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="ws-dot on" id="track-dot" style="width:10px;height:10px;border-radius:50%;display:inline-block;background:#10b981;box-shadow:0 0 8px #10b981;animation:pulse 2s infinite"></span>
+        <div>
+          <div class="text-emerald-400 text-sm font-semibold" id="track-label">Transmitindo localização...</div>
+          <div class="text-emerald-600 text-xs" id="track-info">Aguardando GPS...</div>
+        </div>
+      </div>
+      <button onclick="stopVehicleTracking()" class="px-3 py-1.5 rounded-lg border border-rose-500/40 text-rose-400 text-xs font-semibold hover:bg-rose-500/10 transition-colors">&#x23F9; Parar Transmissão</button>
+    </div>
+    <div class="flex gap-3 mb-6">
+      <select id="filter-status" onchange="renderDispatches()" class="input-field text-white text-sm px-4 py-2.5 rounded-xl">
+        <option value="">Todos os status</option>
+        <option value="ASSIGNED">Atribuído</option>
+        <option value="ACCEPTED">Aceito</option>
+        <option value="EN_ROUTE">Em Rota</option>
+        <option value="ARRIVED">No Local</option>
+        <option value="COMPLETED">Concluído</option>
+        <option value="CANCELLED">Cancelado</option>
+      </select>
+    </div>
+    <div id="dispatches-list" class="space-y-4">
+      <div class="text-gray-500 text-center py-16">Carregando despachos...</div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL NOVO DESPACHO -->
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="modal-card rounded-2xl w-full max-w-lg p-7">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-bold text-white">Novo Despacho</h2>
+      <button onclick="closeModal()" class="text-gray-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <form id="dispatch-form" onsubmit="handleDispatch(event)" class="space-y-4">
+      <div>
+        <label class="text-xs text-gray-400 font-medium block mb-1">Incidente *</label>
+        <select id="d-incident" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+          <option value="">Selecione o incidente...</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-400 font-medium block mb-1">Viatura *</label>
+        <select id="d-vehicle" required class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm">
+          <option value="">Selecione a viatura...</option>
+        </select>
+      </div>
+      <div id="d-error" class="hidden text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2"></div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm transition-colors">Cancelar</button>
+        <button type="submit" class="btn-primary flex-1 py-2.5 rounded-xl text-white text-sm font-semibold">Despachar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL AUTO-DESPACHO -->
+<div id="auto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="modal-card rounded-2xl w-full max-w-md p-7">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-lg font-bold text-white">Auto-Despacho</h2>
+      <button onclick="closeAutoModal()" class="text-gray-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <p class="text-gray-400 text-sm mb-5">O sistema selecionará automaticamente a melhor viatura disponível para o incidente.</p>
+    <div>
+      <label class="text-xs text-gray-400 font-medium block mb-1">Incidente *</label>
+      <select id="auto-incident" class="input-field w-full px-3 py-2.5 rounded-xl text-white text-sm mb-4">
+        <option value="">Selecione o incidente...</option>
+      </select>
+    </div>
+    <div id="auto-error" class="hidden text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2 mb-4"></div>
+    <div class="flex gap-3">
+      <button onclick="closeAutoModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm transition-colors">Cancelar</button>
+      <button onclick="handleAutoDispatch()" class="py-2.5 px-6 rounded-xl text-purple-400 text-sm font-semibold border border-purple-500/40 hover:bg-purple-500/10 transition-colors">Auto-Despachar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ATUALIZAR STATUS -->
+<div id="status-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="modal-card rounded-2xl w-full max-w-sm p-7">
+    <h2 class="text-lg font-bold text-white mb-4">Atualizar Status</h2>
+    <p class="text-gray-400 text-sm mb-5" id="status-modal-info"></p>
+    <div class="space-y-2" id="status-buttons"></div>
+    <button onclick="closeStatusModal()" class="w-full mt-4 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white text-sm transition-colors">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const API=window.location.origin;
+const token=localStorage.getItem('token');
+if(!token) window.location.href='index.html';
+const orgFetch=window.fetch;
+window.fetch=async(...args)=>{
+  const r=await orgFetch(...args);
+  if(r.status===401||r.status===403){localStorage.removeItem('token');window.location.href='index.html';}
+  return r;
+};
+function authHeaders(){return{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}}
+function logout(){localStorage.removeItem('token');window.location.href='index.html'}
+
+const assignStatusMap={
+  ASSIGNED:{label:'Atribuído',color:'bg-indigo-500/20 text-indigo-400'},
+  ACCEPTED:{label:'Aceito',color:'bg-blue-500/20 text-blue-400'},
+  EN_ROUTE:{label:'Em Rota',color:'bg-purple-500/20 text-purple-400'},
+  ARRIVED:{label:'No Local',color:'bg-amber-500/20 text-amber-400'},
+  COMPLETED:{label:'Concluído',color:'bg-emerald-500/20 text-emerald-400'},
+  CANCELLED:{label:'Cancelado',color:'bg-rose-500/20 text-rose-400'}
+};
+const typeIcons={AMBULANCE:'🚑',FIRE_TRUCK:'🚒',POLICE_CAR:'🚓',CART:'🚐',TOW_TRUCK:'🚛'};
+
+let allDispatches=[]; let allIncidents=[]; let allVehicles=[];
+let selectedDispatch=null;
+
+async function loadAll(){
+  try{
+    const [dRes,iRes,vRes]=await Promise.all([
+      fetch(`${API}/dispatch`,{headers:authHeaders()}),
+      fetch(`${API}/incidents`,{headers:authHeaders()}),
+      fetch(`${API}/vehicules`,{headers:authHeaders()})
+    ]);
+    allDispatches=dRes.ok?await dRes.json():[];
+    allIncidents=iRes.ok?await iRes.json():[];
+    allVehicles=vRes.ok?await vRes.json():[];
+    populateSelects();
+    renderDispatches();
+  }catch(e){document.getElementById('dispatches-list').innerHTML='<div class="text-rose-400 text-center py-16">Erro ao carregar dados.</div>';}
+}
+
+function populateSelects(){
+  const pending=allIncidents.filter(i=>i.status!=='RESOLVED');
+  const available=allVehicles.filter(v=>v.status==='AVAILABLE');
+  ['d-incident','auto-incident'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Selecione o incidente...</option>'+pending.map(i=>`<option value="${i.id}">#${i.id} – ${i.description||i.location||'Sem descrição'} (${i.type})</option>`).join('');
+    if(cur)sel.value=cur;
+  });
+  const vSel=document.getElementById('d-vehicle');
+  vSel.innerHTML='<option value="">Selecione a viatura...</option>'+available.map(v=>`<option value="${v.id}">${typeIcons[v.type]||''} ${v.name} – ${v.plate}</option>`).join('');
+}
+
+function renderDispatches(){
+  const sf=document.getElementById('filter-status').value;
+  let list=allDispatches.filter(d=>!sf||d.status===sf);
+  list.sort((a,b)=>new Date(b.assignedAt||b.createdAt)-new Date(a.assignedAt||a.createdAt));
+  const el=document.getElementById('dispatches-list');
+  if(!list.length){el.innerHTML='<div class="text-gray-500 text-center py-16">Nenhum despacho encontrado</div>';return;}
+
+  const steps=['ASSIGNED','ACCEPTED','EN_ROUTE','ARRIVED','COMPLETED'];
+  el.innerHTML=list.map(d=>{
+    const s=assignStatusMap[d.status]||{label:d.status,color:'bg-gray-500/20 text-gray-400'};
+    const stepIdx=steps.indexOf(d.status);
+    const stepsHTML=steps.map((st,i)=>{
+      const done=i<=stepIdx;
+      const stMap={ASSIGNED:'Atribuído',ACCEPTED:'Aceito',EN_ROUTE:'Em Rota',ARRIVED:'No Local',COMPLETED:'Concluído'};
+      return `<div class="flex flex-col items-center gap-1">
+        <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${done?'bg-indigo-500 text-white':'bg-white/10 text-gray-600'}">${i+1}</div>
+        <span class="text-xs ${done?'text-indigo-300':'text-gray-600'} text-center" style="white-space:nowrap">${stMap[st]}</span>
+      </div>${i<steps.length-1?`<div class="flex-1 h-0.5 mt-3 ${i<stepIdx?'bg-indigo-500':'bg-white/10'}"></div>`:''}`;
+    }).join('');
+
+    const nextActions=getNextActions(d);
+    const actionsHTML=nextActions.map(a=>`<button onclick="updateStatus('${d.id}','${d.vehicule?.id}','${a.endpoint}','${d.incidentId}')" class="text-xs px-3 py-1.5 rounded-lg ${a.color} transition-colors">${a.label}</button>`).join('');
+
+    return `<div class="card p-5">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex items-start gap-4">
+          <span class="text-3xl">${typeIcons[d.vehicule?.type]||'🚨'}</span>
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <span class="text-white font-semibold">${d.vehicule?.name||'Viatura'}</span>
+              <span class="badge ${s.color}">${s.label}</span>
+              ${d.status==='CANCELLED'?'<span class="badge bg-rose-500/20 text-rose-400">Cancelado</span>':''}
+            </div>
+            <div class="text-xs text-gray-400">Incidente: ${d.incident?.description||d.incident?.location||'–'}</div>
+            <div class="text-xs text-gray-500">Atribuído: ${d.assignedAt?new Date(d.assignedAt).toLocaleString('pt-BR'):'–'}</div>
+          </div>
+        </div>
+        <div class="flex gap-2">${actionsHTML}</div>
+      </div>
+      <div class="flex items-center gap-2">${stepsHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+function getNextActions(d){
+  const map={
+    ASSIGNED:[{label:'✓ Aceitar',endpoint:'accept',color:'bg-blue-500/20 hover:bg-blue-500/40 text-blue-400'}],
+    ACCEPTED:[{label:'🚗 Iniciar Rota',endpoint:'start-route',color:'bg-purple-500/20 hover:bg-purple-500/40 text-purple-400'}],
+    EN_ROUTE:[{label:'📍 Chegou',endpoint:'arrived',color:'bg-amber-500/20 hover:bg-amber-500/40 text-amber-400'}],
+    ARRIVED:[{label:'✅ Concluir',endpoint:'complete',color:'bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400'}],
+    COMPLETED:[],CANCELLED:[]
+  };
+  return map[d.status]||[];
+}
+
+async function updateStatus(id,vehiculeId,endpoint,incidentId){
+  const statusMap={accept:'ACCEPTED','start-route':'EN_ROUTE',arrived:'ARRIVED',complete:'COMPLETED'};
+  try{
+    const body={assignmentId:id,vehiculeId:vehiculeId,incidentId:incidentId,status:statusMap[endpoint]||'ASSIGNED'};
+    const res=await fetch(`${API}/dispatch/${endpoint}`,{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
+    if(!res.ok)throw new Error(await res.text()||'Erro ao atualizar status');
+    loadAll();
+  }catch(e){alert(e.message);}
+}
+
+async function openModal(){
+  populateSelects();
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('incidentId'))document.getElementById('d-incident').value=params.get('incidentId');
+  document.getElementById('d-error').classList.add('hidden');
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal(){document.getElementById('modal').classList.add('hidden')}
+
+async function handleDispatch(e){
+  e.preventDefault();
+  const errEl=document.getElementById('d-error');
+  try{
+    const body={incidentId:document.getElementById('d-incident').value,vehiculeId:document.getElementById('d-vehicle').value};
+    const res=await fetch(`${API}/dispatch`,{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
+    if(!res.ok)throw new Error(await res.text()||'Erro ao despachar');
+    closeModal();loadAll();
+  }catch(err){errEl.textContent=err.message;errEl.classList.remove('hidden');}
+}
+
+function openAutoModal(){populateSelects();document.getElementById('auto-error').classList.add('hidden');document.getElementById('auto-modal').classList.remove('hidden')}
+function closeAutoModal(){document.getElementById('auto-modal').classList.add('hidden')}
+
+async function handleAutoDispatch(){
+  const incidentId=document.getElementById('auto-incident').value;
+  const errEl=document.getElementById('auto-error');
+  if(!incidentId){errEl.textContent='Selecione um incidente';errEl.classList.remove('hidden');return;}
+  try{
+    const res=await fetch(`${API}/dispatch/auto`,{method:'POST',headers:authHeaders(),body:JSON.stringify({incidentId})});
+    if(!res.ok)throw new Error(await res.text()||'Nenhuma viatura disponível');
+    closeAutoModal();loadAll();
+  }catch(err){errEl.textContent=err.message;errEl.classList.remove('hidden');}
+}
+
+function closeStatusModal(){document.getElementById('status-modal').classList.add('hidden')}
+
+loadAll();
+setInterval(loadAll,15000);
+
+// ========= GPS TRACKING VIA WEBSOCKET (Socket.IO) =========
+let _socket=null,_watchId=null,_sendInterval=null,_trackingVehicleId=null,_trackPackets=0;
+
+function initWS(onReady){
+  if(_socket&&_socket.connected){onReady();return;}
+  const token=localStorage.getItem('token');
+  const s=document.createElement('script');
+  s.src='https://cdn.socket.io/4.8.0/socket.io.min.js';
+  s.onload=()=>{
+    _socket=io(`${API}/realtime`,{auth:{token},transports:['websocket']});
+    _socket.on('connect',()=>onReady());
+    _socket.on('disconnect',()=>console.warn('WS desconectado'));
+    _socket.on('requires_auth',(msg)=>console.warn('Auth WS:',msg));
+  };
+  document.head.appendChild(s);
+}
+
+async function startSimulatedTracking(vehiculeId){
+  let lat = -9.4144;
+  let lng = -40.5162;
+  try {
+    const res = await fetch(`${API}/vehicules/${vehiculeId}`, {headers: authHeaders()});
+    if (res.ok) {
+      const v = await res.json();
+      if (v.latitude && v.longitude) {
+        lat = v.latitude;
+        lng = v.longitude;
+      }
+    }
+  } catch(e){}
+  
+  document.getElementById('track-info').textContent = `🔮 GPS Simulado · 📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const targetLat = -9.39625;
+  const targetLng = (lng > 0) ? 40.48038 : -40.48038;
+  
+  _sendInterval = setInterval(()=>{
+    if(!_socket?.connected)return;
+    const step = 0.0003;
+    if (Math.abs(lat - targetLat) > step) {
+      lat += (targetLat > lat ? 1 : -1) * step;
+    }
+    if (Math.abs(lng - targetLng) > step) {
+      lng += (targetLng > lng ? 1 : -1) * step;
+    }
+    document.getElementById('track-info').textContent = `🔮 GPS Simulado · 📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const payload = {
+      vehiculeId: _trackingVehicleId,
+      eventId: crypto.randomUUID(),
+      sequence: _trackPackets,
+      latitude: lat,
+      longitude: lng,
+      speed: 11.1,
+      accuracy: 5.0,
+      heading: 45.0,
+      capturedAt: new Date().toISOString()
+    };
+    _socket.emit('location.update', payload);
+    _trackPackets++;
+    document.getElementById('track-label').textContent = `🚑 Viatura — ${_trackPackets} pacotes enviados (Simulado)`;
+  }, 3000);
+}
+
+function startVehicleTracking(vehiculeId){
+  stopVehicleTracking();
+  _trackingVehicleId=vehiculeId;
+  _trackPackets=0;
+  document.getElementById('tracking-banner').classList.remove('hidden');
+  document.getElementById('track-label').textContent=`🚑 Viatura transmitindo...`;
+  initWS(()=>{
+    let currentPos=null;
+    const gpsOpts={enableHighAccuracy:true,timeout:15000,maximumAge:2000};
+    if(navigator.geolocation){
+      _watchId=navigator.geolocation.watchPosition(pos=>{
+        currentPos=pos;
+        const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+        document.getElementById('track-info').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} · ±${(accuracy||0).toFixed(0)}m`;
+      },err=>{
+        if(err.code===1){
+          document.getElementById('track-info').textContent='⚠️ Permissão negada. Ativando simulador...';
+          startSimulatedTracking(vehiculeId);
+          return;
+        }
+        document.getElementById('track-info').textContent='❌ Erro GPS: '+err.message;
+      },gpsOpts);
+    } else {
+      startSimulatedTracking(vehiculeId);
+      return;
+    }
+    _sendInterval=setInterval(()=>{
+      if(!_socket?.connected||!currentPos)return;
+      const {latitude,longitude,speed,accuracy,heading}=currentPos.coords;
+      const payload={vehiculeId:_trackingVehicleId,eventId:crypto.randomUUID(),sequence:_trackPackets,latitude,longitude,speed:speed??0,accuracy:accuracy??0,heading:heading??0,capturedAt:new Date().toISOString()};
+      _socket.emit('location.update',payload);
+      _trackPackets++;
+      document.getElementById('track-label').textContent=`🚑 Viatura — ${_trackPackets} pacotes enviados`;
+    },5000);
+  });
+}
+
+function stopVehicleTracking(){
+  if(_watchId!=null){navigator.geolocation.clearWatch(_watchId);_watchId=null;}
+  if(_sendInterval){clearInterval(_sendInterval);_sendInterval=null;}
+  _trackingVehicleId=null;
+  document.getElementById('tracking-banner').classList.add('hidden');
+}
+
+// Override updateStatus to auto-start GPS tracking when accepting
+const _origUpdateStatus=updateStatus;
+window.updateStatus=async function(id,vehiculeId,endpoint,incidentId){
+  await _origUpdateStatus(id,vehiculeId,endpoint,incidentId);
+  if(endpoint==='accept'&&vehiculeId)startVehicleTracking(vehiculeId);
+  if(endpoint==='complete'||endpoint==='arrived')stopVehicleTracking();
+};
+
+</script>
+</body>
+</html>

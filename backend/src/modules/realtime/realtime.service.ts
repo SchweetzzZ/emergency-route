@@ -41,8 +41,10 @@ export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect
 
     handleConnection(client: Socket) {
         try {
-            const rawToken = client.handshake.auth?.token ||
-                client.handshake.headers.authorization?.replace("Bearer ", "");
+            const suppliedToken = client.handshake.auth?.token || client.handshake.headers.authorization;
+            const rawToken = typeof suppliedToken === "string"
+                ? suppliedToken.replace(/^Bearer\s+/i, "").trim()
+                : undefined;
 
             if (!rawToken) {
                 client.emit("requires_auth", "Autenticação JWT necessária");
@@ -123,7 +125,7 @@ export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect
     ) {
         const auth = client.data.auth as TrackerSocketData | DashboardSocketData | undefined;
 
-        if (!auth || auth.type !== "tracking-device") {
+        if (!auth || (auth.type === "user" && auth.role !== "ADMIN")) {
             throw new WsException("Socket não autorizado para enviar localização.");
         }
 
@@ -138,7 +140,7 @@ export class RealtimeService implements OnGatewayConnection, OnGatewayDisconnect
 
         const data: TrackingInputDTO = parsed.data;
 
-        if (data.vehiculeId !== auth.vehiculeId) {
+        if (auth.type === "tracking-device" && data.vehiculeId !== auth.vehiculeId) {
             throw new WsException("Este dispositivo não pode atualizar outra viatura.");
         }
 

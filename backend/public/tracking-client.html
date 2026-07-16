@@ -3,164 +3,600 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Emergency Route — Rastreamento</title>
+    <title>Emergency Route — Rastreamento (Java)</title>
+    <!-- SockJS + STOMP para comunicação WebSocket com o backend Spring Boot -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { max-width: 680px; margin: 0 auto; padding: 2rem 1rem; font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; }
-        h1 { margin-bottom: .25rem; }
-        p { color: #94a3b8; }
-        .card { padding: 1.25rem; margin-top: 1rem; border: 1px solid #2d3748; border-radius: 12px; background: #1e2330; }
-        label { display: block; margin: .8rem 0 .3rem; color: #94a3b8; font-size: .85rem; }
-        input { width: 100%; padding: .7rem; border: 1px solid #2d3748; border-radius: 8px; background: #0f1117; color: #f8fafc; }
-        button { margin-top: 1rem; padding: .75rem 1rem; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700; }
-        #btn-start { background: #22c55e; color: white; } #btn-stop { background: #ef4444; color: white; margin-left: .5rem; }
-        button:disabled { opacity: .45; cursor: not-allowed; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; }
-        .value { display: block; padding: .7rem; border-radius: 8px; background: #0f1117; color: #38bdf8; font-variant-numeric: tabular-nums; }
-        #log { max-height: 200px; overflow-y: auto; font: .8rem ui-monospace, monospace; }
-        #log p { margin: .35rem 0; } .ok { color: #22c55e; } .err { color: #ef4444; } .info { color: #38bdf8; }
-        .active { color: #22c55e; } .error { color: #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f8fafc;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+
+        .card {
+            background: #1e2330;
+            border: 1px solid #2d3748;
+            border-radius: 16px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 420px;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #94a3b8;
+            margin-right: 8px;
+            vertical-align: middle;
+            transition: background 0.3s;
+        }
+
+        .status-dot.active {
+            background: #22c55e;
+            box-shadow: 0 0 8px #22c55e88;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.simulating {
+            background: #eab308;
+            box-shadow: 0 0 8px #eab30888;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.error { background: #ef4444; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        #status-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+
+        .coord-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+
+        .coord-box {
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 0.75rem;
+        }
+
+        .coord-box label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .coord-box span {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #38bdf8;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .coord-box.full { grid-column: 1 / -1; }
+
+        .vehicle-input, .api-input {
+            margin-bottom: 1rem;
+        }
+
+        .vehicle-input label, .api-input label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .vehicle-input input, .api-input input {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            color: #f8fafc;
+            font-size: 0.9rem;
+            padding: 0.6rem 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .vehicle-input input:focus, .api-input input:focus { border-color: #38bdf8; }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            cursor: pointer;
+        }
+
+        .option-row input {
+            width: 16px;
+            height: 16px;
+            accent-color: #38bdf8;
+            cursor: pointer;
+        }
+
+        .interval-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .interval-row label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+
+        .interval-row input[type="range"] {
+            flex: 1;
+            accent-color: #38bdf8;
+        }
+
+        #interval-display {
+            font-size: 0.85rem;
+            color: #38bdf8;
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-start:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-start:active { transform: translateY(0); }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-stop:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-row { display: flex; gap: 0.75rem; }
+        .btn-row .btn { flex: 1; }
+
+        .log-box {
+            background: #0f1117;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 0.75rem;
+            height: 160px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+            color: #64748b;
+        }
+
+        .log-box p { margin-bottom: 4px; line-height: 1.5; }
+        .log-box p.ok { color: #22c55e; }
+        .log-box p.err { color: #ef4444; }
+        .log-box p.info { color: #38bdf8; }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #475569;
+            margin-bottom: 0.75rem;
+        }
+
+        .sends-counter {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        .sends-counter span { color: #38bdf8; font-weight: 700; }
     </style>
 </head>
 <body>
-    <h1>Emergency Route</h1>
-    <p>Rastreamento WebSocket em tempo real</p>
 
-    <section class="card">
-        <label for="vehicule-id">ID do veículo</label>
-        <input id="vehicule-id" placeholder="UUID do veículo" />
+<header>
+    <h1>🚨 Emergency Route (Java)</h1>
+    <p>Rastreamento via WebSocket STOMP</p>
+</header>
 
-        <label for="socket-url">URL do WebSocket</label>
-        <input id="socket-url" value="http://localhost:3000/realtime" />
+<!-- Config card -->
+<div class="card">
+    <p class="section-title">Configuração</p>
 
-        <label for="device-token">Token temporário do dispositivo</label>
-        <input id="device-token" type="password" placeholder="Gerado em POST /tracking/device-token/:vehiculeId" />
+    <div class="vehicle-input">
+        <label>ID do Veículo (Número)</label>
+        <input type="number" id="vehicle-id" placeholder="Ex: 1" min="1" value="1" />
+    </div>
 
-        <button id="btn-start" onclick="startTracking()">Iniciar</button>
-        <button id="btn-stop" onclick="stopTracking()" disabled>Parar</button>
-    </section>
+    <div class="api-input">
+        <label>Endpoint WebSocket (SockJS)</label>
+        <input type="text" id="api-url" value="http://localhost:8080/ws-tracking" />
+    </div>
 
-    <section class="card">
-        <strong id="status-text">Aguardando início…</strong>
-        <p>Envios confirmados: <span id="send-count">0</span></p>
-        <div class="grid">
-            <div><label>Latitude</label><span id="lat" class="value">—</span></div>
-            <div><label>Longitude</label><span id="lng" class="value">—</span></div>
-            <div><label>Velocidade</label><span id="speed" class="value">—</span></div>
-            <div><label>Precisão</label><span id="accuracy" class="value">—</span></div>
-            <div><label>Direção</label><span id="heading" class="value">—</span></div>
+    <label class="option-row">
+        <input type="checkbox" id="simulated-checkbox" onchange="toggleSimulatedMode()" checked />
+        <span>Modo Simulado (Para testar em computadores sem GPS)</span>
+    </label>
+
+    <label class="option-row" id="accuracy-row" style="opacity: 0.3; pointer-events: none;">
+        <input type="checkbox" id="high-accuracy-checkbox" checked />
+        <span>Forçar Alta Precisão (Pode causar timeout em PCs)</span>
+    </label>
+
+    <div class="interval-row">
+        <label>Intervalo de envio</label>
+        <input type="range" id="interval-slider" min="2" max="60" value="5" step="1" />
+        <span id="interval-display">5s</span>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-start" id="btn-start" onclick="startTracking()">▶ Iniciar</button>
+        <button class="btn btn-stop" id="btn-stop" onclick="stopTracking()" disabled>■ Parar</button>
+    </div>
+</div>
+
+<!-- Status card -->
+<div class="card">
+    <p class="section-title">Status</p>
+    <div>
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Aguardando início...</span>
+    </div>
+
+    <div class="coord-grid">
+        <div class="coord-box">
+            <label>Latitude</label>
+            <span id="lat">—</span>
         </div>
-    </section>
+        <div class="coord-box">
+            <label>Longitude</label>
+            <span id="lng">—</span>
+        </div>
+        <div class="coord-box">
+            <label>Velocidade</label>
+            <span id="speed">—</span>
+        </div>
+        <div class="coord-box">
+            <label>Precisão GPS</label>
+            <span id="accuracy">—</span>
+        </div>
+        <div class="coord-box full">
+            <label>Direção (heading)</label>
+            <span id="heading">—</span>
+        </div>
+    </div>
 
-    <section class="card"><div id="log"></div></section>
+    <p class="sends-counter">Envios realizados: <span id="send-count">0</span></p>
+</div>
 
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script>
-        let socket = null;
-        let watchId = null;
-        let sending = false;
-        let sendCount = 0;
-        let sequence = 0;
-        const queueKey = "tracking-location-queue";
+<!-- Log card -->
+<div class="card">
+    <p class="section-title">Log de Eventos</p>
+    <div class="log-box" id="log"></div>
+</div>
 
-        function getQueue() { return JSON.parse(localStorage.getItem(queueKey) || "[]"); }
-        function saveQueue(queue) { localStorage.setItem(queueKey, JSON.stringify(queue)); }
+<script>
+    let watchId = null;
+    let simulateIntervalId = null;
+    let sendCount = 0;
+    let lastSentAt = 0;
+    let stompClient = null;
 
-        function log(message, type = "") {
-            const line = document.createElement("p");
-            line.className = type;
-            line.textContent = `[${new Date().toLocaleTimeString("pt-BR")}] ${message}`;
-            document.getElementById("log").prepend(line);
+    // Coordenadas simuladas iniciais (Av. Paulista, SP como exemplo)
+    let simLat = -23.561684;
+    let simLng = -46.655981;
+    let simSpeed = 11.1; // ~40 km/h em m/s
+    let simHeading = 90; // Leste
+
+    const slider = document.getElementById('interval-slider');
+    const intervalDisplay = document.getElementById('interval-display');
+
+    slider.addEventListener('input', () => {
+        intervalDisplay.textContent = slider.value + 's';
+    });
+
+    function toggleSimulatedMode() {
+        const simulated = document.getElementById('simulated-checkbox').checked;
+        const accuracyRow = document.getElementById('accuracy-row');
+        if (simulated) {
+            accuracyRow.style.opacity = '0.3';
+            accuracyRow.style.pointerEvents = 'none';
+        } else {
+            accuracyRow.style.opacity = '1';
+            accuracyRow.style.pointerEvents = 'auto';
         }
+    }
 
-        function setStatus(text, state = "") {
-            const element = document.getElementById("status-text");
-            element.textContent = text;
-            element.className = state;
-        }
+    function log(msg, type = '') {
+        const box = document.getElementById('log');
+        const p = document.createElement('p');
+        if (type) p.className = type;
+        const time = new Date().toLocaleTimeString('pt-BR');
+        p.textContent = `[${time}] ${msg}`;
+        box.prepend(p);
+        while (box.children.length > 50) box.removeChild(box.lastChild);
+    }
 
-        function updateScreen(coords) {
-            document.getElementById("lat").textContent = coords.latitude.toFixed(6);
-            document.getElementById("lng").textContent = coords.longitude.toFixed(6);
-            document.getElementById("speed").textContent = coords.speed == null ? "—" : `${(coords.speed * 3.6).toFixed(1)} km/h`;
-            document.getElementById("accuracy").textContent = coords.accuracy == null ? "—" : `${coords.accuracy.toFixed(0)} m`;
-            document.getElementById("heading").textContent = coords.heading == null ? "—" : `${coords.heading.toFixed(0)}°`;
-        }
+    function setStatus(text, state = '') {
+        const dot = document.getElementById('status-dot');
+        dot.className = 'status-dot' + (state ? ` ${state}` : '');
+        document.getElementById('status-text').textContent = text;
+    }
 
-        function enqueueLocation(coords) {
-            const queue = getQueue();
-            queue.push({
-                eventId: crypto.randomUUID(),
-                sequence: ++sequence,
-                vehiculeId: document.getElementById("vehicule-id").value.trim(),
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                speed: coords.speed ?? null,
-                accuracy: coords.accuracy ?? null,
-                heading: coords.heading ?? null,
-                capturedAt: new Date().toISOString(),
+    function connectStomp(wsUrl) {
+        return new Promise((resolve, reject) => {
+            stompClient = new StompJs.Client({
+                webSocketFactory: () => new SockJS(wsUrl),
+                reconnectDelay: 0,
+                onConnect: () => {
+                    log('✅ Conectado ao servidor via WebSocket (STOMP).', 'ok');
+                    resolve();
+                },
+                onDisconnect: () => {
+                    log('ℹ️  Desconectado do servidor.', 'info');
+                },
+                onStompError: (frame) => {
+                    log(`❌ Erro STOMP: ${frame.headers['message']}`, 'err');
+                    reject(new Error(frame.headers['message']));
+                },
+                onWebSocketError: (evt) => {
+                    log('❌ Falha na conexão WebSocket. Certifique-se de que o backend Java está rodando na porta 8080.', 'err');
+                    reject(new Error('WebSocket connection failed'));
+                }
             });
-            saveQueue(queue);
-            flushQueue();
+            stompClient.activate();
+        });
+    }
+
+    function sendLocationData(coords) {
+        const vehicleIdStr = document.getElementById('vehicle-id').value.trim();
+        const vehicleId = parseInt(vehicleIdStr, 10);
+
+        if (!vehicleIdStr || isNaN(vehicleId)) {
+            log('⚠️  Insira um ID de veículo válido (número inteiro).', 'err');
+            stopTracking();
+            return;
         }
 
-        function flushQueue() {
-            if (!socket?.connected || sending) return;
-            const nextEvent = getQueue()[0];
-            if (!nextEvent) return;
-            sending = true;
-            socket.emit("location.update", nextEvent);
+        if (!stompClient || !stompClient.connected) {
+            log('⚠️  Mensagem não enviada: sem conexão com o servidor.', 'err');
+            return;
         }
 
-        function connectSocket() {
-            socket = io(document.getElementById("socket-url").value.trim(), {
-                auth: { token: document.getElementById("device-token").value.trim() },
-                transports: ["websocket"],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 10000,
+        const { latitude, longitude, speed, accuracy, heading } = coords;
+
+        // Atualiza interface
+        document.getElementById('lat').textContent      = latitude.toFixed(6);
+        document.getElementById('lng').textContent      = longitude.toFixed(6);
+        document.getElementById('speed').textContent    = speed != null ? (speed * 3.6).toFixed(1) + ' km/h' : '—';
+        document.getElementById('accuracy').textContent = accuracy != null ? accuracy.toFixed(0) + ' m' : '—';
+        document.getElementById('heading').textContent  = heading != null ? heading.toFixed(0) + '°' : '—';
+
+        // Segue a estrutura exata do DTO (TrackingDto) esperado pelo Java
+        const payload = {
+            vehicleId: vehicleId,
+            latitude: latitude,
+            longitude: longitude,
+            speed: speed ?? null,
+            heading: heading ?? null,
+            accuracy: accuracy ?? null
+        };
+
+        try {
+            stompClient.publish({
+                destination: '/app/send-location',
+                body: JSON.stringify(payload),
             });
 
-            socket.on("connect", () => { setStatus("Conectado e rastreando", "active"); log("WebSocket conectado.", "ok"); flushQueue(); });
-            socket.on("disconnect", () => { sending = false; setStatus("Sem conexão; fila local ativa", "error"); log("WebSocket desconectado.", "err"); });
-            socket.on("connect_error", (error) => log(`Falha na conexão: ${error.message}`, "err"));
-            socket.on("exception", (error) => { sending = false; log(error.message || "Mensagem rejeitada pelo servidor.", "err"); });
-            socket.on("location.accepted", ({ eventId }) => {
-                saveQueue(getQueue().filter((event) => event.eventId !== eventId));
-                sending = false;
-                sendCount += 1;
-                document.getElementById("send-count").textContent = sendCount;
-                flushQueue();
-            });
+            sendCount++;
+            document.getElementById('send-count').textContent = sendCount;
+            log(`🚀 Localização publicada no Kafka — lat: ${latitude.toFixed(5)}, lng: ${longitude.toFixed(5)}`, 'ok');
+        } catch (err) {
+            log(`❌ Erro ao enviar dados: ${err.message}`, 'err');
+        }
+    }
+
+    async function startTracking() {
+        const vehicleIdStr = document.getElementById('vehicle-id').value.trim();
+        const vehicleId = parseInt(vehicleIdStr, 10);
+        const wsUrl = document.getElementById('api-url').value.trim();
+        const isSimulated = document.getElementById('simulated-checkbox').checked;
+
+        if (!vehicleIdStr || isNaN(vehicleId) || vehicleId <= 0) {
+            log('⚠️  Insira um ID de veículo válido (número inteiro maior que zero).', 'err');
+            return;
         }
 
-        function startTracking() {
-            const vehiculeId = document.getElementById("vehicule-id").value.trim();
-            const token = document.getElementById("device-token").value.trim();
-            if (!vehiculeId || !token) { log("Informe o veículo e o token do dispositivo.", "err"); return; }
-            if (!navigator.geolocation) { log("Geolocalização indisponível neste navegador.", "err"); return; }
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-stop').disabled  = false;
+        document.getElementById('vehicle-id').disabled = true;
+        document.getElementById('api-url').disabled = true;
+        document.getElementById('simulated-checkbox').disabled = true;
+        document.getElementById('high-accuracy-checkbox').disabled = true;
 
-            document.getElementById("btn-start").disabled = true;
-            document.getElementById("btn-stop").disabled = false;
-            connectSocket();
+        setStatus('Conectando...', '');
+        log('ℹ️  Tentando estabelecer conexão com o WebSocket...', 'info');
+
+        try {
+            await connectStomp(wsUrl);
+        } catch (e) {
+            setStatus('Erro de Conexão', 'error');
+            stopTracking();
+            return;
+        }
+
+        if (isSimulated) {
+            // --- MODO SIMULADO ---
+            setStatus('Simulação Ativa', 'simulating');
+            log('ℹ️  Iniciando simulação de trajeto...', 'info');
+
+            const tickRate = 1000;
+            simulateIntervalId = setInterval(() => {
+                simLat += (Math.random() - 0.3) * 0.0001;
+                simLng += (Math.random() - 0.1) * 0.0001;
+                simHeading = (simHeading + (Math.random() - 0.5) * 20 + 360) % 360;
+                simSpeed = Math.max(5, Math.min(25, simSpeed + (Math.random() - 0.5) * 2));
+
+                const now = Date.now();
+                const minInterval = parseInt(slider.value) * 1000;
+
+                document.getElementById('lat').textContent      = simLat.toFixed(6);
+                document.getElementById('lng').textContent      = simLng.toFixed(6);
+                document.getElementById('speed').textContent    = (simSpeed * 3.6).toFixed(1) + ' km/h';
+                document.getElementById('accuracy').textContent = '3 m';
+                document.getElementById('heading').textContent  = simHeading.toFixed(0) + '°';
+
+                if (now - lastSentAt >= minInterval) {
+                    lastSentAt = now;
+                    sendLocationData({
+                        latitude: simLat,
+                        longitude: simLng,
+                        speed: simSpeed,
+                        accuracy: 3,
+                        heading: simHeading
+                    });
+                }
+            }, tickRate);
+
+        } else {
+            // --- MODO REAL (GPS) ---
+            if (!navigator.geolocation) {
+                setStatus('Não suportado', 'error');
+                log('❌ API de geolocalização não disponível.', 'err');
+                stopTracking();
+                return;
+            }
+
+            const useHighAccuracy = document.getElementById('high-accuracy-checkbox').checked;
+
+            setStatus('Aguardando GPS...', '');
+            log(`ℹ️  Buscando coordenadas (Alta Precisão: ${useHighAccuracy})...`, 'info');
+
             watchId = navigator.geolocation.watchPosition(
-                (position) => { updateScreen(position.coords); enqueueLocation(position.coords); },
-                (error) => { setStatus("Erro de GPS", "error"); log(`Erro de GPS: ${error.message}`, "err"); },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+                (position) => {
+                    setStatus('Rastreando (GPS)', 'active');
+                    const now = Date.now();
+                    const minInterval = parseInt(slider.value) * 1000;
+
+                    if (now - lastSentAt >= minInterval) {
+                        lastSentAt = now;
+                        sendLocationData(position.coords);
+                    } else {
+                        const { latitude, longitude, speed, accuracy, heading } = position.coords;
+                        document.getElementById('lat').textContent      = latitude.toFixed(6);
+                        document.getElementById('lng').textContent      = longitude.toFixed(6);
+                        document.getElementById('speed').textContent    = speed != null ? (speed * 3.6).toFixed(1) + ' km/h' : '—';
+                        document.getElementById('accuracy').textContent = accuracy != null ? accuracy.toFixed(0) + ' m' : '—';
+                        document.getElementById('heading').textContent  = heading != null ? heading.toFixed(0) + '°' : '—';
+                    }
+                },
+                (error) => {
+                    setStatus('Erro de GPS', 'error');
+                    let errMsg = error.message;
+                    if (error.code === 3) {
+                        errMsg = "Timeout ao obter GPS.";
+                    }
+                    log(`❌ Erro no GPS: ${errMsg}`, 'err');
+                },
+                {
+                    enableHighAccuracy: useHighAccuracy,
+                    maximumAge: 0,
+                    timeout: 20000,
+                }
             );
         }
+    }
 
-        function stopTracking() {
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-            if (socket) socket.disconnect();
+    function stopTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
             watchId = null;
-            socket = null;
-            sending = false;
-            setStatus("Rastreamento parado");
-            document.getElementById("btn-start").disabled = false;
-            document.getElementById("btn-stop").disabled = true;
-            log("Rastreamento interrompido.", "info");
         }
-    </script>
+        if (simulateIntervalId !== null) {
+            clearInterval(simulateIntervalId);
+            simulateIntervalId = null;
+        }
+        if (stompClient !== null) {
+            stompClient.deactivate();
+            stompClient = null;
+        }
+
+        setStatus('Aguardando...', '');
+        document.getElementById('btn-start').disabled   = false;
+        document.getElementById('btn-stop').disabled    = true;
+        document.getElementById('vehicle-id').disabled  = false;
+        document.getElementById('api-url').disabled     = false;
+        document.getElementById('simulated-checkbox').disabled = false;
+        document.getElementById('high-accuracy-checkbox').disabled = false;
+
+        log('⏹️  Envios parados.', 'info');
+    }
+</script>
 </body>
 </html>
