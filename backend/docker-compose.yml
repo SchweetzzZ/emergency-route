@@ -112,7 +112,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgres://postgres:polegadas5000@postgres:5432/emergencyDB
+      DATABASE_URL: postgresql://postgres:polegadas5000@postgres:5432/emergencyDB?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       RABBITMQ_URL: amqp://rabbitmq:5672
